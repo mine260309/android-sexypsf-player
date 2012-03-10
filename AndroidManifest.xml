@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+
+    MinePsfPlayer is an Android App that plays psf and minipsf files.
+    Copyright (C) 2010  Lei YU
+	
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either version 2
+	of the License, or (at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="com.mine.psfplayer">
+
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!--  uses-permission android:name="android.permission.INTERNET" / -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <application android:icon="@drawable/minepsfplayer"
+        android:label="@string/minepsfplayer_app">
+
+        <activity android:name="com.mine.PsfFileBrowserActivity"
+            android:theme="@android:style/Theme.NoTitleBar" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MUSIC_PLAYER" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- This is the "current music playing" panel, which has special
+             launch behavior.  We clear its task affinity, so it will not
+             be associated with the main media task and if launched
+             from a notification will not bring the rest of the media app
+             to the foreground.  We make it singleTask so that when others
+             launch it (such as media) we will launch in to our own task.
+             We set clearTaskOnLaunch because the user
+             can go to a playlist from this activity, so if they later return
+             to it we want it back in its initial state.  We exclude from
+             recents since this is accessible through a notification when
+             appropriate. -->
+        <!--  activity android:name="com.mine.PsfPlaybackActivity"
+                android:theme="@android:style/Theme.NoTitleBar"
+                android:label="@string/mediaplaybacklabel"
+                android:taskAffinity=""
+                android:launchMode="singleTask"
+                android:clearTaskOnLaunch="true"
+                android:excludeFromRecents="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content"/>
+                <data android:scheme="file"/>
+                <data android:mimeType="audio/*"/>
+                <data android:mimeType="application/ogg"/>
+                <data android:mimeType="application/x-ogg"/>
+                <data android:mimeType="application/itunes"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.music.PLAYBACK_VIEWER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity -->
+
+
+        <!--  activity android:name="com.android.music.NowPlayingActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.PICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/nowplaying"/>
+            </intent-filter>
+        </activity -->
+
+        <!--  receiver android:name="com.android.music.MediaAppWidgetProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/appwidget_info" />
+        </receiver -->
+    </application>
+</manifest>
