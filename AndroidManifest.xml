@@ -32,7 +32,7 @@
     <application android:icon="@drawable/minepsfplayer"
         android:label="@string/minepsfplayer_app">
 
-        <activity android:name="com.mine.PsfFileBrowserActivity"
+        <activity android:name="com.mine.psf.PsfFileBrowserActivity"
             android:theme="@android:style/Theme.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
