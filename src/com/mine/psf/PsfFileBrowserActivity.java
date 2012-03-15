@@ -25,6 +25,7 @@ import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -45,7 +46,7 @@ public class PsfFileBrowserActivity extends Activity
 	private TextView PlayerStatusView;
 	private ListView MusicListView;
 	private ArrayAdapter<String> MusicListAdapter;
-	
+	private MineSexyPsfPlayer player;
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -77,12 +78,14 @@ public class PsfFileBrowserActivity extends Activity
 			        
 			    	// Below is just for testing purpose
 			        setContentView(PlayerStatusView);
-			        MineSexyPsfPlayer player = new MineSexyPsfPlayer();
+			        player = new MineSexyPsfPlayer();
 			        player.Open(musicName);
 			        player.Play(MineSexyPsfPlayer.PSFPLAY);
+			        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
 			    }
 			  });
 		setContentView(MusicListView);
+		player = null;
     }
 
     @Override
@@ -117,6 +120,9 @@ public class PsfFileBrowserActivity extends Activity
     }
     
     public void ExitApp() {
+    	if (player != null) {
+    		player.Stop();
+    	}
     	PlayerStatusView.append("\n exit application");
     	PlayerStatusView.append("\nExit...");
 

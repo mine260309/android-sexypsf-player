@@ -23,5 +23,6 @@
 <resources>
     <string name="minepsfplayer_app">MinePsfPlayer</string>
     <string name="menu_exit">Exit</string>
+    <string name="psfplaybacklabel">Psf Playing</string>
 </resources>
 

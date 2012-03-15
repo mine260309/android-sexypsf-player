@@ -52,14 +52,14 @@
              to it we want it back in its initial state.  We exclude from
              recents since this is accessible through a notification when
              appropriate. -->
-        <!--  activity android:name="com.mine.PsfPlaybackActivity"
+        <activity android:name="com.mine.psf.PsfPlaybackActivity"
                 android:theme="@android:style/Theme.NoTitleBar"
-                android:label="@string/mediaplaybacklabel"
+                android:label="@string/psfplaybacklabel"
                 android:taskAffinity=""
                 android:launchMode="singleTask"
                 android:clearTaskOnLaunch="true"
                 android:excludeFromRecents="true" >
-            <intent-filter>
+            <!-- intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="content"/>
@@ -68,12 +68,11 @@
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
                 <data android:mimeType="application/itunes"/>
-            </intent-filter>
+            </intent-filter -->
             <intent-filter>
-                <action android:name="com.android.music.PLAYBACK_VIEWER" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity -->
+        </activity>
 
 
         <!--  activity android:name="com.android.music.NowPlayingActivity">

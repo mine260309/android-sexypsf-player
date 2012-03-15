@@ -1,5 +1,7 @@
 package com.mine.psf;
 
+import com.mine.psf.sexypsf.MineSexyPsfPlayer;
+
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -21,6 +23,7 @@ public class PsfPlaybackService extends Service {
 	private BroadcastReceiver mUnmountReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
+    private MineSexyPsfPlayer PsfPlayer = null;
     
     public static final String CMDNAME = "command";
     public static final String CMDTOGGLEPAUSE = "togglepause";
@@ -97,19 +100,25 @@ public class PsfPlaybackService extends Service {
 	}
 
 	public void openFile(String path) {
-		//TODO
+		if (PsfPlayer == null) {
+			PsfPlayer = new MineSexyPsfPlayer();
+		}
+		PsfPlayer.Open(path);
 	}
 	public void stop() {
-		//TODO
-		
+		if (PsfPlayer != null) {
+			PsfPlayer.Stop();
+		}
 	}
 	public  void pause() {
-		//TODO
-		
+		if (PsfPlayer != null) {
+			PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+		}
 	}
 	public  void play() {
-		//TODO
-		
+		if (PsfPlayer != null) {
+			PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
+		}
 	}
 	public  boolean isPlaying() {
 		//TODO
