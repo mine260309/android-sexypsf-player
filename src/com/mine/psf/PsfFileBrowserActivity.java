@@ -21,10 +21,12 @@ package com.mine.psf;
 import java.io.File;
 import java.io.FilenameFilter;
 
+import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -36,6 +38,7 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class PsfFileBrowserActivity extends Activity
 {
+	private static final String LOGTAG = "PsfFileBrowserActivity";
 	private static final String MEDIA_PATH = new String("/sdcard/psf/");
 	private static final int ID_EXIT = 1;
 	
@@ -69,10 +72,14 @@ public class PsfFileBrowserActivity extends Activity
 			        int position, long id) {
 			      // When clicked, start playing
 			    	String musicName = ((TextView) view).getText().toString();
-			    	System.out.println("pick a music: " + musicName);
+			    	Log.d(LOGTAG, "pick a music: " + musicName);
 			    	PlayerStatusView.append("pick a music: " + musicName);
 			        
-			        //setContentView(playerStatusView);
+			    	// Below is just for testing purpose
+			        setContentView(PlayerStatusView);
+			        MineSexyPsfPlayer player = new MineSexyPsfPlayer();
+			        player.Open(musicName);
+			        player.Play(MineSexyPsfPlayer.PSFPLAY);
 			    }
 			  });
 		setContentView(MusicListView);
