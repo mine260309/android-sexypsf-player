@@ -88,6 +88,7 @@ public class MineSexyPsfPlayer {
 	public void Stop() {
 		threadShallExit = true;
 		PsfAudiotrack.stop();
+		MineSexyPsfLib.sexypsfstop();
 		try {
 			GetThread.join();
 			PutThread.join();

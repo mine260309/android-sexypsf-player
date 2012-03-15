@@ -51,7 +51,7 @@ static char* jstringTostring(JNIEnv* env, jstring jstr)
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfopen
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfopen
 
 DESCRIPTION: Sexypsf wrapper to call function psf_open
 
@@ -70,7 +70,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-jboolean Java_com_sexypsf_SexypsfWrapper_sexypsfopen( JNIEnv* env,
+jboolean Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfopen( JNIEnv* env,
                                              jobject thiz,
                                              jstring filename)
 {
@@ -96,7 +96,7 @@ jboolean Java_com_sexypsf_SexypsfWrapper_sexypsfopen( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfplay
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfplay
 
 DESCRIPTION: Sexypsf wrapper to call function psf_play
 
@@ -114,7 +114,7 @@ SIDE EFFECTS:
    This function will not return until the playback is done or psf_stop is called.
 
 ==================================================================================================*/
-void Java_com_sexypsf_SexypsfWrapper_sexypsfplay( JNIEnv* env,
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfplay( JNIEnv* env,
                                              jobject thiz)
 {
     psf_play();
@@ -123,7 +123,7 @@ void Java_com_sexypsf_SexypsfWrapper_sexypsfplay( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfpause
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfpause
 
 DESCRIPTION: Sexypsf wrapper to call function psf_pause
 
@@ -142,7 +142,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-void Java_com_sexypsf_SexypsfWrapper_sexypsfpause( JNIEnv* env,
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfpause( JNIEnv* env,
                                              jobject thiz,
                                              jboolean   pause)
 {
@@ -151,7 +151,7 @@ void Java_com_sexypsf_SexypsfWrapper_sexypsfpause( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfseek
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfseek
 
 DESCRIPTION: Sexypsf wrapper to call function psf_seek
 
@@ -171,7 +171,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-void Java_com_sexypsf_SexypsfWrapper_sexypsfseek( JNIEnv* env,
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfseek( JNIEnv* env,
                                              jobject thiz,
                                              jint    seek,
                                              jint    mode)
@@ -181,7 +181,7 @@ void Java_com_sexypsf_SexypsfWrapper_sexypsfseek( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfstop
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfstop
 
 DESCRIPTION: Sexypsf wrapper to call function psf_stop
 
@@ -199,7 +199,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-void Java_com_sexypsf_SexypsfWrapper_sexypsfstop( JNIEnv* env,
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfstop( JNIEnv* env,
                                              jobject thiz)
 {
     psf_stop();
@@ -215,7 +215,7 @@ void Java_com_sexypsf_SexypsfWrapper_sexypsfstop( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfputaudiodata
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodata
 
 DESCRIPTION: Sexypsf wrapper to put audio data to java buffer
 
@@ -235,7 +235,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-jint Java_com_sexypsf_SexypsfWrapper_sexypsfputaudiodata( JNIEnv* env,
+jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodata( JNIEnv* env,
                                              jobject thiz, jbyteArray arr, jint size)
 {
     jbyte *carr;
@@ -259,7 +259,7 @@ jint Java_com_sexypsf_SexypsfWrapper_sexypsfputaudiodata( JNIEnv* env,
 
 /*==================================================================================================
 
-FUNCTION: Java_com_sexypsf_SexypsfWrapper_sexypsfputaudiodataindex
+FUNCTION: Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodataindex
 
 DESCRIPTION: Sexypsf wrapper to put audio data to java buffer
 
@@ -279,7 +279,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-jint Java_com_sexypsf_SexypsfWrapper_sexypsfputaudiodataindex( JNIEnv* env,
+jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodataindex( JNIEnv* env,
                                       jobject thiz, jbyteArray arr, jint index, jint size)
 {
     jbyte *carr;
