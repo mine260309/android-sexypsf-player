@@ -21,6 +21,7 @@ package com.mine.psf;
 import java.io.File;
 import java.io.FilenameFilter;
 
+import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psfplayer.R;
 
@@ -46,7 +47,8 @@ public class PsfFileBrowserActivity extends Activity
 	private TextView PlayerStatusView;
 	private ListView MusicListView;
 	private ArrayAdapter<String> MusicListAdapter;
-	private MineSexyPsfPlayer player;
+    private ServiceToken mToken;
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -78,14 +80,13 @@ public class PsfFileBrowserActivity extends Activity
 			        
 			    	// Below is just for testing purpose
 			        setContentView(PlayerStatusView);
-			        player = new MineSexyPsfPlayer();
-			        player.Open(musicName);
-			        player.Play(MineSexyPsfPlayer.PSFPLAY);
+
+			        PsfUtils.play(view.getContext(), musicName);
 			        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
 			    }
 			  });
 		setContentView(MusicListView);
-		player = null;
+		mToken = PsfUtils.bindToService(this);
     }
 
     @Override
@@ -100,7 +101,15 @@ public class PsfFileBrowserActivity extends Activity
     	PlayerStatusView.append("\n stop application");
     	super.onStop();
     }
-    
+
+    @Override
+    public void onDestroy() {
+        if (mToken != null) {
+            PsfUtils.unbindFromService(mToken);
+        }
+        super.onDestroy();
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         boolean result = super.onCreateOptionsMenu(menu);
@@ -120,12 +129,9 @@ public class PsfFileBrowserActivity extends Activity
     }
     
     public void ExitApp() {
-    	if (player != null) {
-    		player.Stop();
-    	}
     	PlayerStatusView.append("\n exit application");
     	PlayerStatusView.append("\nExit...");
-
+    	PsfUtils.stop(this);
     	finish();
     }
 }

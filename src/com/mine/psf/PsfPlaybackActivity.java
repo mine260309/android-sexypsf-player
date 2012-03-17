@@ -4,9 +4,17 @@ import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -22,7 +30,8 @@ import android.widget.Toast;
 
 public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 		OnLongClickListener {
-
+	private static final String LOGTAG = "PsfPlaybackActivity";
+	
     private boolean mOneShot = false;
     private boolean mSeeking = false;
     private boolean mDeviceHasDpad;
@@ -139,14 +148,129 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
             doPauseResume();
         }
     };
-    
+
     private void doPauseResume() {
+    	Log.d(LOGTAG, "doPauesResume");
     	if(mService != null) {
     		if (mService.isPlaying()) {
+    	    	Log.d(LOGTAG, "call pause");
     			mService.pause();
     		} else {
+    	    	Log.d(LOGTAG, "call play");
     			mService.play();
     		}
     	}
     }
+    
+    @Override
+    public void onStop() {
+        paused = true;
+        if (mService != null && mOneShot && getChangingConfigurations() == 0) {
+            mService.stop();
+        }
+        unregisterReceiver(mStatusListener);
+        PsfUtils.unbindFromService(mToken);
+        mService = null;
+        super.onStop();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean("oneshot", mOneShot);
+        super.onSaveInstanceState(outState);
+    }
+    
+    @Override
+    public void onStart() {
+        super.onStart();
+        paused = false;
+
+        mToken = PsfUtils.bindToService(this, osc);
+        if (mToken == null) {
+            // something went wrong
+        }
+        
+        IntentFilter f = new IntentFilter();
+        f.addAction(PsfPlaybackService.PLAYSTATE_CHANGED);
+        f.addAction(PsfPlaybackService.PLAYBACK_COMPLETE);
+        registerReceiver(mStatusListener, new IntentFilter(f));
+        // updateTrackInfo();
+    }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+    	Log.d(LOGTAG, "onNewIntent");
+        setIntent(intent);
+        mOneShot = intent.getBooleanExtra("oneshot", false);
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+    	Log.d(LOGTAG, "onResume");
+        setPauseButtonImage();
+    }
+    
+    @Override
+    public void onDestroy()
+    {
+        super.onDestroy();
+    	Log.d(LOGTAG, "onDestroy");
+    }
+ 
+    private BroadcastReceiver mStatusListener = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.v(LOGTAG, "mStatusListener receive: " + action);
+            if (action.equals(PsfPlaybackService.PLAYBACK_COMPLETE)) {
+                if (mOneShot) {
+                    finish();
+                } else {
+                    setPauseButtonImage();
+                }
+            } else if (action.equals(PsfPlaybackService.PLAYSTATE_CHANGED)) {
+                setPauseButtonImage();
+            }
+        }
+    };
+
+    private void setPauseButtonImage() {
+    	Log.d(LOGTAG, "setPauseButtonImage");
+    	if (mService != null && mService.isPlaying()) {
+    		mPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+    	} else {
+    		mPauseButton.setImageResource(android.R.drawable.ic_media_play);
+    	}
+    }
+    
+    private ServiceConnection osc = new ServiceConnection() {
+        public void onServiceConnected(ComponentName classname, IBinder obj) {
+            try {
+                mService = ((PsfPlaybackService.ServiceBinder)obj).getService();
+                // Assume something is playing when the service says it is,
+                // but also if the audio ID is valid but the service is paused.
+                if ( mService.isPlaying()) {
+                	// TODO: set all other widgets
+                    setPauseButtonImage();
+                    return;
+                }
+            } catch (Exception ex) {
+            	ex.printStackTrace();
+            }
+            // Service is dead or not playing anything. If we got here as part
+            // of a "play this file" Intent, exit. Otherwise go to the Music
+            // app start screen.
+            if (getIntent().getData() == null) {
+                Intent intent = new Intent(Intent.ACTION_MAIN);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setClass(PsfPlaybackActivity.this, PsfPlaybackActivity.class);
+                startActivity(intent);
+            }
+            finish();
+        }
+        public void onServiceDisconnected(ComponentName classname) {
+            mService = null;
+        }
+};
 }

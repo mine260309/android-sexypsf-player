@@ -37,6 +37,8 @@ public class PsfUtils {
             mWrappedContext = context;
         }
     }
+    
+    public static PsfPlaybackService sService = null;
     private static HashMap<Context, ServiceBinder> sConnectionMap =
     	new HashMap<Context, ServiceBinder>();
 
@@ -76,6 +78,7 @@ public class PsfUtils {
         if (sConnectionMap.isEmpty()) {
             // presumably there is nobody interested in the service at this point,
             // so don't hang on to the ServiceConnection
+        	sService = null;
         }
     }
     
@@ -86,6 +89,7 @@ public class PsfUtils {
         }
         
         public void onServiceConnected(ComponentName className, android.os.IBinder service) {
+        	sService = ((PsfPlaybackService.ServiceBinder)service).getService();
             if (mCallback != null) {
                 mCallback.onServiceConnected(className, service);
             }
@@ -95,11 +99,20 @@ public class PsfUtils {
             if (mCallback != null) {
                 mCallback.onServiceDisconnected(className);
             }
+            sService = null;
         }
     }
     
     public static void play(Context context, String psfFile) {
+    	if (sService != null) {
+	    	sService.openFile(psfFile);
+	    	sService.play();
+    	}
     }
     
-    
+    public static void stop(Context context) {
+    	if (sService != null) {
+    		sService.stop();
+    	}
+    }
 }

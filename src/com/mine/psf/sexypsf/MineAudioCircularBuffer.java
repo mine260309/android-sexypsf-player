@@ -21,16 +21,7 @@ public class MineAudioCircularBuffer {
     private BufferChunk readBufferChunk;
 
     public MineAudioCircularBuffer(int len){
-    	m_buffer = new byte[len];
-    	m_len = len;
-    	put_index = 0; get_index = 0;
-    	put = new Semaphore(m_len);
-    	get = new Semaphore(0);
-    	m_EndFlag = false;
-    	
-    	writeBufferChunk = new BufferChunk();
-    	readBufferChunk = new BufferChunk();
-    	writeBufferChunk.buffer = readBufferChunk.buffer = m_buffer;
+    	init(len);
     }
     
     public void Discard() {
@@ -42,6 +33,26 @@ public class MineAudioCircularBuffer {
 		}
     	put.release(avail);
     }
+    
+    public void init(int len) {
+    	m_buffer = new byte[len];
+    	m_len = len;
+    	put_index = 0; get_index = 0;
+    	put = new Semaphore(m_len);
+    	get = new Semaphore(0);
+    	m_EndFlag = false;
+    	
+    	writeBufferChunk = new BufferChunk();
+    	readBufferChunk = new BufferChunk();
+    	writeBufferChunk.buffer = readBufferChunk.buffer = m_buffer;
+    }
+    // Discard the buffer and release all the Semaphore
+    public void destroy() {
+    	Discard();
+    	put.release(m_len);
+    	get.release(m_len);
+    }
+    
 
     public boolean getEndFlag() {return m_EndFlag;}
     public void setAudioBufferEnd()
@@ -60,8 +71,8 @@ public class MineAudioCircularBuffer {
     	    // reach the end, set put_len to the end
     		put_len = m_len - put_index;
     	}
-    	Log.v(LOGTAG, "GetWriteBuffer: req " + requiredWriteLength +
-    			", avail " + avail + ", put_index " + put_index +", put_len " + put_len);
+//    	Log.v(LOGTAG, "GetWriteBuffer: req " + requiredWriteLength +
+//    			", avail " + avail + ", put_index " + put_index +", put_len " + put_len);
     	try {
 			put.acquire(put_len);
 		} catch (InterruptedException e) {
@@ -70,10 +81,10 @@ public class MineAudioCircularBuffer {
     	writeBufferChunk.index = put_index;
     	writeBufferChunk.len = put_len;
     	put_index += put_len;
-    	Log.v(LOGTAG, "Move put_index with "+put_len);
+//    	Log.d(LOGTAG, "Move put_index with "+put_len);
     	if (put_index >= m_len) {
     		put_index = 0;
-    		Log.v(LOGTAG, "Move put_index back to 0");
+//    		Log.d(LOGTAG, "Move put_index back to 0");
     	}
     	get.release(put_len);
     	return writeBufferChunk;
@@ -93,8 +104,8 @@ public class MineAudioCircularBuffer {
     		// reach the end, set get_len to the end
     		get_len = m_len - get_index;
     	}
-    	Log.v(LOGTAG, "GetReadBuffer: req " + requiredReadLength +
-    			", avail " + avail + ", get_index " + get_index +", gett_len " + get_len);
+//    	Log.v(LOGTAG, "GetReadBuffer: req " + requiredReadLength +
+//    			", avail " + avail + ", get_index " + get_index +", gett_len " + get_len);
 
     	try {
 			get.acquire(get_len);
@@ -105,10 +116,10 @@ public class MineAudioCircularBuffer {
     	readBufferChunk.index = get_index;
     	readBufferChunk.len = get_len;
     	get_index += get_len;
-    	Log.v(LOGTAG, "Move get_index with "+get_len);
+//    	Log.v(LOGTAG, "Move get_index with "+get_len);
     	if (get_index >= m_len) {
     		get_index = 0;
-    		Log.v(LOGTAG, "Move get_index back to 0");
+//    		Log.v(LOGTAG, "Move get_index back to 0");
     	}
     	put.release(get_len);
     	return readBufferChunk;

@@ -34,6 +34,9 @@ public class PsfPlaybackService extends Service {
     public static final String TOGGLEPAUSE_ACTION = "com.mine.psf.psfservicecmd.togglepause";
     public static final String PAUSE_ACTION = "com.mine.psf.psfservicecmd.pause";
     
+	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
+	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
+    
     @Override
     public void onCreate() {
     	super.onCreate();
@@ -108,21 +111,24 @@ public class PsfPlaybackService extends Service {
 	public void stop() {
 		if (PsfPlayer != null) {
 			PsfPlayer.Stop();
+			notifyChange(PLAYSTATE_CHANGED);
 		}
 	}
 	public  void pause() {
 		if (PsfPlayer != null) {
 			PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+			notifyChange(PLAYSTATE_CHANGED);
 		}
 	}
 	public  void play() {
 		if (PsfPlayer != null) {
 			PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
+			notifyChange(PLAYSTATE_CHANGED);
 		}
 	}
 	public  boolean isPlaying() {
-		//TODO
-		return false;
+		//TODO maybe this flag is not valid...
+		return PsfPlayer.isPlaying();
 	}
 	public  long duration() {
 		//TODO
@@ -142,7 +148,13 @@ public class PsfPlaybackService extends Service {
 	}
 	
 	
-	
+    private void notifyChange(String what) {
+        Intent i = new Intent(what);
+        i.putExtra("album",getAlbumName());
+        i.putExtra("track", getTrackName());
+        sendBroadcast(i);
+    }
+
 	/**
      * Registers an intent to listen for ACTION_MEDIA_EJECT notifications.
      * The intent will call closeExternalStorageFiles() if the external media
