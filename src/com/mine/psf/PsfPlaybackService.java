@@ -1,3 +1,21 @@
+/*************************************************************************
+ * MinePsfPlayer is an Android App that plays psf and minipsf files.
+ * Copyright (C) 2010  Lei YU
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ ************************************************************************/
+
 package com.mine.psf;
 
 import com.mine.psf.sexypsf.MineSexyPsfPlayer;
@@ -106,6 +124,9 @@ public class PsfPlaybackService extends Service {
 		if (PsfPlayer == null) {
 			PsfPlayer = new MineSexyPsfPlayer();
 		}
+		if (PsfPlayer.isPlaying()) {
+			PsfPlayer.Stop();
+		}
 		PsfPlayer.Open(path);
 	}
 	public void stop() {
@@ -128,8 +149,20 @@ public class PsfPlaybackService extends Service {
 	}
 	public  boolean isPlaying() {
 		//TODO maybe this flag is not valid...
-		return PsfPlayer.isPlaying();
+		if (PsfPlayer != null) {
+			return PsfPlayer.isPlaying();
+		}
+		return false;
 	}
+	
+	public  boolean isActive() {
+		//TODO maybe this flag is not valid...
+		if (PsfPlayer != null) {
+			return PsfPlayer.isActive();
+		}
+		return false;
+	}
+	
 	public  long duration() {
 		//TODO
 		return 0;
@@ -147,7 +180,10 @@ public class PsfPlaybackService extends Service {
 		return "";
 	}
 	
-	
+    public String getArtistName() {
+        return "";
+    }
+    
     private void notifyChange(String what) {
         Intent i = new Intent(what);
         i.putExtra("album",getAlbumName());
@@ -207,6 +243,9 @@ public class PsfPlaybackService extends Service {
 		}
 		public boolean isPlaying() {
 			return service.isPlaying();
+		}
+		public boolean isActive() {
+			return service.isActive();
 		}
 		public long duration() {
 			return service.duration();

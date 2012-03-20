@@ -26,8 +26,11 @@ import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -39,12 +42,12 @@ import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
 public class PsfFileBrowserActivity extends Activity
+									implements ServiceConnection
 {
 	private static final String LOGTAG = "PsfFileBrowserActivity";
 	private static final String MEDIA_PATH = new String("/sdcard/psf/");
 	private static final int ID_EXIT = 1;
 	
-	private TextView PlayerStatusView;
 	private ListView MusicListView;
 	private ArrayAdapter<String> MusicListAdapter;
     private ServiceToken mToken;
@@ -55,12 +58,9 @@ public class PsfFileBrowserActivity extends Activity
     {
         super.onCreate(savedInstanceState);
 
-        /** Create a TextView and set its content.
-         * the text is retrieved by calling a native
-         * function.
-         */
-        PlayerStatusView = new TextView(this);
-        MusicListView = new ListView(this);
+        setContentView(R.layout.psffile_browser_activity);
+        //PlayerStatusView = new TextView(this);
+        MusicListView = (ListView) findViewById(R.id.psffilelist);
         MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
     	File home = new File(MEDIA_PATH);
@@ -70,35 +70,29 @@ public class PsfFileBrowserActivity extends Activity
     			MusicListAdapter.add(file.getPath());
     		}
 		}
+
 		MusicListView.setOnItemClickListener(new OnItemClickListener() {
 			    public void onItemClick(AdapterView<?> parent, View view,
 			        int position, long id) {
-			      // When clicked, start playing
+			        // When clicked, start playing
 			    	String musicName = ((TextView) view).getText().toString();
 			    	Log.d(LOGTAG, "pick a music: " + musicName);
-			    	PlayerStatusView.append("pick a music: " + musicName);
-			        
-			    	// Below is just for testing purpose
-			        setContentView(PlayerStatusView);
 
 			        PsfUtils.play(view.getContext(), musicName);
 			        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
 			    }
 			  });
-		setContentView(MusicListView);
-		mToken = PsfUtils.bindToService(this);
+		mToken = PsfUtils.bindToService(this, this);
     }
 
     @Override
     public void onPause()
     {
-    	PlayerStatusView.append("\n pause application");
     	super.onPause();
     }
     @Override
     public void onStop()
     {
-    	PlayerStatusView.append("\n stop application");
     	super.onStop();
     }
 
@@ -129,11 +123,21 @@ public class PsfFileBrowserActivity extends Activity
     }
     
     public void ExitApp() {
-    	PlayerStatusView.append("\n exit application");
-    	PlayerStatusView.append("\nExit...");
     	PsfUtils.stop(this);
     	finish();
     }
+
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder service) {
+		Log.d(LOGTAG, "onServiceConnected");
+        PsfUtils.updateNowPlaying(this);
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName name) {
+		Log.d(LOGTAG, "onServiceDisconnected");
+		finish();
+	}
 }
 
 class Mp3Filter implements FilenameFilter {

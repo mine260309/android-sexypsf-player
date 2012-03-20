@@ -20,6 +20,8 @@ package com.mine.psf;
 
 import java.util.HashMap;
 
+import com.mine.psfplayer.R;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,6 +29,8 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
 
 public class PsfUtils {
     private static final String LOGTAG = "PsfUtils";
@@ -114,5 +118,31 @@ public class PsfUtils {
     	if (sService != null) {
     		sService.stop();
     	}
+    }
+    
+    static void updateNowPlaying(Activity a) {
+        View nowPlayingView = a.findViewById(R.id.nowplaying);
+        if (nowPlayingView == null) {
+            return;
+        }
+        if (PsfUtils.sService != null /* TODO && PsfUtils.sService.getAudioId() != -1*/) {
+        	TextView title = (TextView) nowPlayingView.findViewById(R.id.title);
+        	TextView artist = (TextView) nowPlayingView.findViewById(R.id.artist);
+        	title.setText(PsfUtils.sService.getTrackName());
+        	String artistName = PsfUtils.sService.getArtistName();
+        	if (artistName.equals("")) {
+        		artistName = a.getString(R.string.unknown_artist_name);
+        	}
+        	artist.setText(artistName);
+
+        	nowPlayingView.setVisibility(View.VISIBLE);
+        	nowPlayingView.setOnClickListener(new View.OnClickListener() {
+        		public void onClick(View v) {
+        			Context c = v.getContext();
+        			c.startActivity(new Intent(c, PsfPlaybackActivity.class));
+        		}});
+        	return;
+        }
+        nowPlayingView.setVisibility(View.GONE);
     }
 }

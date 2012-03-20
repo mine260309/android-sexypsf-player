@@ -122,6 +122,11 @@ public class MineSexyPsfPlayer {
 	public boolean isPlaying() {
 		return PlayerState == PsfPlayerState.STATE_PLAYING;
 	}
+
+	public boolean isActive() {
+		return PlayerState != PsfPlayerState.STATE_IDLE
+			&& PlayerState != PsfPlayerState.STATE_STOPPED;
+	}
 	
 	// The thread that read data from psf lib
 	private class PsfAudioGetThread extends Thread {

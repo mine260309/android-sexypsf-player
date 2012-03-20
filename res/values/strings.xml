@@ -24,5 +24,6 @@
     <string name="minepsfplayer_app">MinePsfPlayer</string>
     <string name="menu_exit">Exit</string>
     <string name="psfplaybacklabel">Psf Playing</string>
+    <string name="unknown_artist_name">Unknown artist</string>
 </resources>
 
