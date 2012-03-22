@@ -25,5 +25,7 @@
     <string name="menu_exit">Exit</string>
     <string name="psfplaybacklabel">Psf Playing</string>
     <string name="unknown_artist_name">Unknown artist</string>
+    <string name="play_all">Play all</string>
+    <string name="shuffle_all">Shuffle all</string>
 </resources>
 

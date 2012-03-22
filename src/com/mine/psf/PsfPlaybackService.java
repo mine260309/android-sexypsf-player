@@ -18,6 +18,9 @@
 
 package com.mine.psf;
 
+import java.util.LinkedList;
+import java.util.Random;
+
 import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 
 import android.app.Service;
@@ -55,6 +58,12 @@ public class PsfPlaybackService extends Service {
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
     
+	// playlist that should be set by browser
+	private String[] playList = null;
+	private boolean playShuffle = false;
+	private int[] shuffleList = null;
+	private int curPos;
+
     @Override
     public void onCreate() {
     	super.onCreate();
@@ -120,34 +129,101 @@ public class PsfPlaybackService extends Service {
         }
 	}
 
+	// Set the playlist with full path
+	public void setPlaylist(String[] list, boolean shuffle) {
+		synchronized(this) {
+			playList = list;
+			playShuffle = shuffle;
+			generateShuffleList();
+		}
+	}
+
 	public void openFile(String path) {
-		if (PsfPlayer == null) {
-			PsfPlayer = new MineSexyPsfPlayer();
+		synchronized(this) {
+			if (PsfPlayer == null) {
+				PsfPlayer = new MineSexyPsfPlayer();
+			}
+			if (PsfPlayer.isActive()) {
+				PsfPlayer.Stop();
+			}
+			Log.d(LOGTAG, "openFile: " + path);
+			PsfPlayer.Open(path);
 		}
-		if (PsfPlayer.isPlaying()) {
-			PsfPlayer.Stop();
-		}
-		PsfPlayer.Open(path);
 	}
 	public void stop() {
-		if (PsfPlayer != null) {
-			PsfPlayer.Stop();
-			notifyChange(PLAYSTATE_CHANGED);
+		synchronized(this) {
+			if (PsfPlayer != null) {
+				Log.d(LOGTAG, "stop");
+				PsfPlayer.Stop();
+				notifyChange(PLAYSTATE_CHANGED);
+			}
 		}
 	}
-	public  void pause() {
-		if (PsfPlayer != null) {
-			PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
-			notifyChange(PLAYSTATE_CHANGED);
+	public void pause() {
+		synchronized(this) {
+			if (PsfPlayer != null) {
+				Log.d(LOGTAG, "pause");
+				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+				notifyChange(PLAYSTATE_CHANGED);
+			}
 		}
 	}
-	public  void play() {
-		if (PsfPlayer != null) {
-			PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
-			notifyChange(PLAYSTATE_CHANGED);
+	public void play() {
+		synchronized(this) {
+			if (PsfPlayer != null) {
+				Log.d(LOGTAG, "play");
+				PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
+				notifyChange(PLAYSTATE_CHANGED);
+			}
 		}
 	}
-	public  boolean isPlaying() {
+	
+	// This function opens the file in playlist and play it
+	public void play(int pos) {
+		synchronized(this) {
+			if (pos < 0 || pos >= playList.length) {
+				Log.e(LOGTAG, "play pos out of range, pos: " + pos
+						+ ", len: " + playList.length);
+				return;
+			}
+			curPos = pos;
+			int playPos;
+			if (playShuffle) {
+				playPos = shuffleList[pos];
+			}
+			else {
+				playPos = pos;
+			}
+			openFile(playList[playPos]);
+			play();
+		}
+	}
+
+	public void next() {
+		synchronized(this) {
+			Log.d(LOGTAG, "next");
+			int pos = goNext();
+			openFile(playList[pos]);
+			play();
+		}
+	}
+
+	public void prev() {
+		synchronized(this) {
+			Log.d(LOGTAG, "prev");
+			int pos = goPrev();
+			openFile(playList[pos]);
+			play();
+		}
+	}
+
+	public void setShuffle(boolean shuffle) {
+		synchronized(this) {
+			playShuffle = shuffle;
+		}
+	}
+
+	public boolean isPlaying() {
 		//TODO maybe this flag is not valid...
 		if (PsfPlayer != null) {
 			return PsfPlayer.isPlaying();
@@ -155,7 +231,7 @@ public class PsfPlaybackService extends Service {
 		return false;
 	}
 	
-	public  boolean isActive() {
+	public boolean isActive() {
 		//TODO maybe this flag is not valid...
 		if (PsfPlayer != null) {
 			return PsfPlayer.isActive();
@@ -163,25 +239,35 @@ public class PsfPlaybackService extends Service {
 		return false;
 	}
 	
-	public  long duration() {
+	public long duration() {
+		synchronized(this) {
 		//TODO
 		return 0;
+		}
 	}
-	public  long position() {
+	public long position() {
+		synchronized(this) {
 		//TODO
 		return 0;
+		}
 	}
-	public  String getTrackName() {
+	public String getTrackName() {
+		synchronized(this) {
 		//TODO
 		return "";
+		}
 	}
-	public  String getAlbumName() {
+	public String getAlbumName() {
+		synchronized(this) {
 		//TODO
 		return "";
+		}
 	}
 	
     public String getArtistName() {
-        return "";
+		synchronized(this) {
+			return "";
+		}
     }
     
     private void notifyChange(String what) {
@@ -219,6 +305,59 @@ public class PsfPlaybackService extends Service {
         }
     }
 	
+    private void generateShuffleList() {
+    	shuffleList = new int[playList.length];
+    	if (playShuffle) {
+    		// make a shuffle list
+    		// algro: get rand(),
+    		LinkedList<Integer> tmpList = new LinkedList<Integer>();
+    		for (int i=0; i < playList.length; ++i) {
+    			tmpList.add(i);
+    		}
+    		Random r = new Random();
+    		for (int i=0; i < playList.length; ++i) {
+    			int tmp = r.nextInt(playList.length-i);
+    			shuffleList[i] = tmpList.get(tmp);
+    			tmpList.remove(tmp);
+    		}
+    	}
+    	else {
+    		for (int i = 0; i<playList.length; ++i) {
+    			shuffleList[i] = i;
+    		}
+    	}
+    	StringBuilder sb = new StringBuilder();
+    	for (int i = 0; i < playList.length; ++i) {
+    		sb.append(shuffleList[i]);
+    		sb.append(",");
+    	}
+    	Log.d(LOGTAG, "GetShuffleList: " + sb.toString());
+    }
+    
+    private int goNext() {
+    	if (shuffleList == null) {
+    		return 0;
+    	}
+    	if (playShuffle) {
+    		return shuffleList[++curPos];
+    	}
+    	else {
+    		return ++curPos;
+    	}
+    }
+    
+    private int goPrev() {
+    	if (shuffleList == null) {
+    		return 0;
+    	}
+    	if (playShuffle) {
+    		return shuffleList[--curPos];
+    	}
+    	else {
+    		return --curPos;
+    	}
+    }
+
 	private final IBinder binder = new ServiceBinder(this);
 	
 	public static class ServiceBinder extends Binder {

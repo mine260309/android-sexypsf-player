@@ -120,6 +120,19 @@ public class PsfUtils {
     	}
     }
     
+    public static void playAll(String[] playList, int pos) {
+    	if (sService != null) {
+    		sService.setPlaylist(playList, false);
+    		sService.play(pos);
+    	}
+    }
+    
+    public static void shuffleAll(String[] playList) {
+    	if (sService != null) {
+    		sService.setPlaylist(playList, true);
+    		sService.play(0);
+    	}
+    }
     static void updateNowPlaying(Activity a) {
         View nowPlayingView = a.findViewById(R.id.nowplaying);
         if (nowPlayingView == null) {

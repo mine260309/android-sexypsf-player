@@ -31,7 +31,6 @@ import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -82,7 +81,6 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     private static final int REFRESH = 1;
     private static final int QUIT = 2;
     private static final int GET_ALBUM_ART = 3;
-    private static final int ALBUM_ART_DECODED = 4;
 
 	@Override
 	public boolean onTouch(View arg0, MotionEvent arg1) {
@@ -125,14 +123,14 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         v.setOnTouchListener(this);
         v.setOnLongClickListener(this);
         
-//        mPrevButton = (RepeatingImageButton) findViewById(R.id.prev);
-//        mPrevButton.setOnClickListener(mPrevListener);
-//        mPrevButton.setRepeatListener(mRewListener, 260);
+        mPrevButton = (RepeatingImageButton) findViewById(R.id.prev);
+        mPrevButton.setOnClickListener(mPrevListener);
+        //mPrevButton.setRepeatListener(mRewListener, 260);
         mPauseButton = (ImageButton) findViewById(R.id.pause);
         mPauseButton.requestFocus();
         mPauseButton.setOnClickListener(mPauseListener);
-//        mNextButton = (RepeatingImageButton) findViewById(R.id.next);
-//        mNextButton.setOnClickListener(mNextListener);
+        mNextButton = (RepeatingImageButton) findViewById(R.id.next);
+        mNextButton.setOnClickListener(mNextListener);
 //        mNextButton.setRepeatListener(mFfwdListener, 260);
         seekmethod = 1;
 
@@ -164,6 +162,30 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     private View.OnClickListener mPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
+        }
+    };
+    
+    private View.OnClickListener mPrevListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            if (mService == null) {
+            	return;
+            }
+            if (mService.position() < 2000) {
+            	mService.prev();
+            } else {
+            	//mService.seek(0);
+            	//mService.play();
+            	//TODO: seek to header of current file
+            }
+        }
+    };
+    
+    private View.OnClickListener mNextListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            if (mService == null) {
+            	return;
+            }
+            mService.next();
         }
     };
 

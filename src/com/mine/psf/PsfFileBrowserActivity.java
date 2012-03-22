@@ -20,9 +20,9 @@ package com.mine.psf;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.util.ArrayList;
 
 import com.mine.psf.PsfUtils.ServiceToken;
-import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
@@ -47,10 +47,13 @@ public class PsfFileBrowserActivity extends Activity
 	private static final String LOGTAG = "PsfFileBrowserActivity";
 	private static final String MEDIA_PATH = new String("/sdcard/psf/");
 	private static final int ID_EXIT = 1;
+	private static final int ID_PLAY_ALL = 2;
+	private static final int ID_SHUFFLE_ALL = 3;
 	
 	private ListView MusicListView;
 	private ArrayAdapter<String> MusicListAdapter;
     private ServiceToken mToken;
+    private ArrayList<String> playList;
 
     /** Called when the activity is first created. */
     @Override
@@ -65,9 +68,11 @@ public class PsfFileBrowserActivity extends Activity
         MusicListView.setAdapter(MusicListAdapter);
     	File home = new File(MEDIA_PATH);
     	File[] filteredFiles = home.listFiles( new Mp3Filter());
+    	playList = new ArrayList<String>();
 		if (filteredFiles!= null && filteredFiles.length > 0) {
     		for (File file : home.listFiles( new Mp3Filter())) {
     			MusicListAdapter.add(file.getPath());
+    			playList.add(file.getPath());
     		}
 		}
 
@@ -107,7 +112,9 @@ public class PsfFileBrowserActivity extends Activity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         boolean result = super.onCreateOptionsMenu(menu);
-        menu.addSubMenu(0, ID_EXIT, 0, R.string.menu_exit);
+        menu.add(0, ID_EXIT, 0, R.string.menu_exit);
+        menu.add(0, ID_PLAY_ALL, 0, R.string.play_all).setIcon(R.drawable.ic_menu_play_clip);
+        menu.add(0, ID_SHUFFLE_ALL, 0, R.string.shuffle_all).setIcon(R.drawable.ic_menu_shuffle);
         return result;
     }
     
@@ -118,6 +125,20 @@ public class PsfFileBrowserActivity extends Activity
     	case ID_EXIT:
     		ExitApp();
     		return true;
+    	case ID_PLAY_ALL:
+    	{
+    		String[] list = (String[])playList.toArray(new String[playList.size()]);
+    		PsfUtils.playAll(list, 0);
+	        startActivity(new Intent(this, PsfPlaybackActivity.class));
+	        return true;
+    	}
+    	case ID_SHUFFLE_ALL:
+    	{
+    		String[] list = (String[])playList.toArray(new String[playList.size()]);
+    		PsfUtils.shuffleAll(list);
+	        startActivity(new Intent(this, PsfPlaybackActivity.class));
+	        return true;
+    	}
     	}
         return super.onOptionsItemSelected(item);
     }
