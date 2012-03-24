@@ -29,6 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
@@ -39,12 +40,14 @@ import android.util.Log;
  * Provides background psf playback capabilities, allowing the
  * user to switch between activities without stopping playback.
  */
-public class PsfPlaybackService extends Service {
+public class PsfPlaybackService extends Service
+	implements MineSexyPsfPlayer.PsfPlayerState {
+
 	private static final String LOGTAG = "PsfPlaybackService";
 	private BroadcastReceiver mUnmountReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
-    private MineSexyPsfPlayer PsfPlayer = null;
+    private MineSexyPsfPlayer PsfPlayer;
     
     public static final String CMDNAME = "command";
     public static final String CMDTOGGLEPAUSE = "togglepause";
@@ -57,12 +60,16 @@ public class PsfPlaybackService extends Service {
     
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
-    
+
+    // interval after which we stop the service when idle
+    private static final int IDLE_DELAY = 60000;
+
 	// playlist that should be set by browser
 	private String[] playList = null;
 	private boolean playShuffle = false;
 	private int[] shuffleList = null;
 	private int curPos;
+    private boolean mServiceInUse = false;
 
     @Override
     public void onCreate() {
@@ -72,10 +79,34 @@ public class PsfPlaybackService extends Service {
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, this.getClass().getName());
         mWakeLock.setReferenceCounted(false);
         Log.d(LOGTAG, "onCreate, Acquire Wake Lock");
+
+        // If the service was idle, but got killed before it stopped itself, the
+        // system will relaunch it. Make sure it gets stopped again in that case.
+        Message msg = mDelayedStopHandler.obtainMessage();
+        mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
     }
     
     @Override
     public void onDestroy() {
+        // Check that we're not being destroyed while something is still playing.
+        if (isPlaying()) {
+            Log.e(LOGTAG, "Service being destroyed while still playing.");
+        }
+        if (PsfPlayer != null) {
+        	PsfPlayer.Stop();
+        	PsfPlayer = null;
+        }
+        
+    	// make sure there aren't any other messages coming
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        mMediaplayerHandler.removeCallbacksAndMessages(null);
+        
+        //unregisterReceiver(mIntentReceiver);
+        if (mUnmountReceiver != null) {
+            unregisterReceiver(mUnmountReceiver);
+            mUnmountReceiver = null;
+        }
+
     	Log.d(LOGTAG, "onDestroy, Release Wake Lock");
         mWakeLock.release();
         super.onDestroy();
@@ -83,11 +114,37 @@ public class PsfPlaybackService extends Service {
     
 	@Override
 	public IBinder onBind(Intent arg0) {
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        mServiceInUse = true;
 		return binder;
 	}
-	
+
+    @Override
+    public void onRebind(Intent intent) {
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        mServiceInUse = true;
+    }
+
     @Override
     public boolean onUnbind(Intent intent) {
+        mServiceInUse = false;
+    	// TODO: save status (queue, player, etc
+    	if (PsfPlayer!= null) {
+    		if (PsfPlayer.isActive() /* || mPausedByTransientLossOfFocus*/) {
+    			// something is currently playing, or will be playing once 
+    			// an in-progress action requesting audio focus ends, so don't stop the service now.
+    			return true;
+    		}
+
+    		// If there is a playlist but playback is paused, then wait a while
+    		// before stopping the service, so that pause/resume isn't slow.
+    		// Also delay stopping the service if we're transitioning between tracks.
+    		if ( playList.length > 0  || mMediaplayerHandler.hasMessages(STATE_STOPPED)) {
+    			Message msg = mDelayedStopHandler.obtainMessage();
+    			mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
+    			return true;
+    		}
+    	}
         stopSelf(mServiceStartId);
         return true;
     }
@@ -110,6 +167,7 @@ public class PsfPlaybackService extends Service {
 
 	private void handleCommand(Intent intent, int startId) {
         mServiceStartId = startId;
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
         if (intent != null) {
             String action = intent.getAction();
             String cmd = intent.getStringExtra("command");
@@ -127,8 +185,48 @@ public class PsfPlaybackService extends Service {
                 stop();
             }
         }
+
+        // make sure the service will shut down on its own if it was
+        // just started but not bound to and nothing is playing
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        Message msg = mDelayedStopHandler.obtainMessage();
+        mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
 	}
 
+    private Handler mMediaplayerHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case STATE_STOPPED:
+                	Log.v(LOGTAG, "get STOPPED message");
+                	next();
+                    //notifyChange(PLAYBACK_COMPLETE);
+                    break;
+                //case RELEASE_WAKELOCK:
+                //    mWakeLock.release();
+                //    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    private Handler mDelayedStopHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            // Check again to make sure nothing is playing right now
+            if (isPlaying() || /*mPausedByTransientLossOfFocus ||*/ mServiceInUse
+                    || mMediaplayerHandler.hasMessages(STATE_STOPPED)) {
+                return;
+            }
+            // save the queue again, because it might have changed
+            // since the user exited the music app (because of
+            // party-shuffle or because the play-position changed)
+            // saveQueue(true);
+            stopSelf(mServiceStartId);
+        }
+    };
+    
 	// Set the playlist with full path
 	public void setPlaylist(String[] list, boolean shuffle) {
 		synchronized(this) {
@@ -138,10 +236,11 @@ public class PsfPlaybackService extends Service {
 		}
 	}
 
-	public void openFile(String path) {
+	private void openFile(String path) {
 		synchronized(this) {
 			if (PsfPlayer == null) {
 				PsfPlayer = new MineSexyPsfPlayer();
+				PsfPlayer.setHandler(mMediaplayerHandler);
 			}
 			if (PsfPlayer.isActive()) {
 				PsfPlayer.Stop();
@@ -150,6 +249,7 @@ public class PsfPlaybackService extends Service {
 			PsfPlayer.Open(path);
 		}
 	}
+
 	public void stop() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -159,6 +259,7 @@ public class PsfPlaybackService extends Service {
 			}
 		}
 	}
+
 	public void pause() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -203,6 +304,10 @@ public class PsfPlaybackService extends Service {
 		synchronized(this) {
 			Log.d(LOGTAG, "next");
 			int pos = goNext();
+			if (pos == -1) {
+				Log.e(LOGTAG, "No Next Track!");
+				return;
+			}
 			openFile(playList[pos]);
 			play();
 		}
@@ -212,6 +317,10 @@ public class PsfPlaybackService extends Service {
 		synchronized(this) {
 			Log.d(LOGTAG, "prev");
 			int pos = goPrev();
+			if (pos == -1) {
+				Log.e(LOGTAG, "No Prev Track!");
+				return;
+			}
 			openFile(playList[pos]);
 			play();
 		}
@@ -232,7 +341,6 @@ public class PsfPlaybackService extends Service {
 	}
 	
 	public boolean isActive() {
-		//TODO maybe this flag is not valid...
 		if (PsfPlayer != null) {
 			return PsfPlayer.isActive();
 		}
@@ -338,6 +446,9 @@ public class PsfPlaybackService extends Service {
     	if (shuffleList == null) {
     		return 0;
     	}
+    	if (curPos + 1 >= playList.length) {
+    		return -1;
+    	}
     	if (playShuffle) {
     		return shuffleList[++curPos];
     	}
@@ -349,6 +460,9 @@ public class PsfPlaybackService extends Service {
     private int goPrev() {
     	if (shuffleList == null) {
     		return 0;
+    	}
+    	if (curPos == 0) {
+    		return -1;
     	}
     	if (playShuffle) {
     		return shuffleList[--curPos];
@@ -368,38 +482,13 @@ public class PsfPlaybackService extends Service {
 		public PsfPlaybackService getService() {
 			return service;
 		}
-		public void openFile(String path) {
-			service.openFile(path);
-		}
-		public void stop() {
-			service.stop();
-		}
-		public void pause() {
-			service.pause();
-		}
-		public void play() {
-			service.play();
-		}
-		public boolean isPlaying() {
-			return service.isPlaying();
-		}
-		public boolean isActive() {
-			return service.isActive();
-		}
-		public long duration() {
-			return service.duration();
-		}
-		public long position() {
-			return service.position();
-		}
-		public String getTrackName() {
-			return service.getTrackName();
-		}
-		public String getAlbumName() {
-			return service.getAlbumName();
-		}
 	}
 
-
+    private void gotoIdleState() {
+        mDelayedStopHandler.removeCallbacksAndMessages(null);
+        Message msg = mDelayedStopHandler.obtainMessage();
+        mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
+        stopForeground(true);
+    }
 	
 }

@@ -142,4 +142,8 @@ public class MineAudioCircularBuffer {
     	put.release(get_len);
     	return readBufferChunk;
     }
+    
+    public int GetBufferAvailable() {
+    	return get.availablePermits();
+    }
 }
