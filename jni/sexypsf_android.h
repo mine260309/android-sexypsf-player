@@ -248,5 +248,28 @@ Notes:
 ==================================================================================================*/
 int psf_audio_putdata(unsigned char *stream, int len);
 
+/*==================================================================================================
+
+FUNCTION: psf_get_pos
+
+DESCRIPTION: get the current position, in seconds
+
+ARGUMENTS PASSED:
+   None
+
+RETURN VALUE:
+   the current position in seconds
+
+DEPENDENCIES:
+   None
+
+SIDE EFFECTS:
+   None
+
+Notes:
+   None
+==================================================================================================*/
+int psf_get_pos();
+
 #endif /* _SEXYPSF_ANDROID_H_ */
 

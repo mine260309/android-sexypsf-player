@@ -44,6 +44,7 @@ public class MineSexyPsfPlayer {
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
 	private String PsfFileName;
+	private PsfInfo PsfFileInfo;
 	private boolean isAudioTrackOpened;
 	private int PlayerState;
 	private Handler mHandler;
@@ -67,6 +68,9 @@ public class MineSexyPsfPlayer {
 		// 2) Open psf file
 		PsfFileName = psfFile;
 		MineSexyPsfLib.sexypsfopen(psfFile);
+		PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
+		//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
+		//		", duration: " + PsfFileInfo.duration);
 		// Let sexypsf play so we can have audio buffer now
 		MineSexyPsfLib.sexypsfplay();
 		setState(PsfPlayerState.STATE_PAUSED);
@@ -128,6 +132,51 @@ public class MineSexyPsfPlayer {
 	public boolean isActive() {
 		return PlayerState != PsfPlayerState.STATE_IDLE
 			&& PlayerState != PsfPlayerState.STATE_STOPPED;
+	}
+	
+	public int GetPosition() {
+		if (isActive()) {
+			return MineSexyPsfLib.sexypsfgetpos();
+		}
+		else {
+			return 0;
+		}
+	}
+
+	public int GetDuration() {
+		if (isActive()) {
+			return PsfFileInfo.duration / 1000;
+		}
+		else {
+			return 0;
+		}
+	}
+	
+	public String GetArtist() {
+		if (isActive()) {
+			return PsfFileInfo.artist;
+		}
+		else {
+			return "";
+		}
+	}
+	
+	public String GetAlbum() {
+		if (isActive()) {
+			return PsfFileInfo.game;
+		}
+		else {
+			return "";
+		}
+	}
+	
+	public String GetTrack() {
+		if (isActive()) {
+			return PsfFileInfo.title;
+		}
+		else {
+			return "";
+		}
 	}
 	
 	// The thread that read data from psf lib

@@ -300,3 +300,62 @@ jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodataindex( JNIEnv* 
     (*env)->ReleasePrimitiveArrayCritical(env, arr, carr, 0);
     return ret;
 }
+
+jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
+		jobject thiz, jstring filename)
+{
+    char* name = jstringTostring(env, filename);
+    PSFINFO *tmp;
+
+    if((tmp=sexy_getpsfinfo(name)))
+    {
+    	static jclass cls = NULL;
+    	jmethodID constructor;
+    	jvalue args[11];
+    	jobject object;
+
+    	sexypsf_dbg_printf("get psf info success");
+
+    	// get a reference to the class
+    	if (cls == NULL) {
+    		cls = (*env)->FindClass(env, "com/mine/psf/sexypsf/PsfInfo");
+    	}
+    	if (cls == NULL) {
+    		sexypsf_dbg_printf("Failed to get class");
+    		return NULL;
+    	}
+    	// get a reference to the constructor; the name is <init>
+    	// with 11 parameters, 3 int, 8 String
+    	constructor = (*env)->GetMethodID(env, cls, "<init>",
+    			"(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    	if (constructor == NULL) {
+    		sexypsf_dbg_printf("Failed to get the method");
+    		return NULL;
+    	}
+    	// set up the arguments; i means int, l means object
+    	args[0].i = tmp->length;
+    	args[1].i = tmp->stop;
+    	args[2].i = tmp->fade;
+    	args[3].l = (*env)->NewStringUTF(env, tmp->title);
+    	args[4].l = (*env)->NewStringUTF(env, tmp->artist);
+    	args[5].l = (*env)->NewStringUTF(env, tmp->game);
+    	args[6].l = (*env)->NewStringUTF(env, tmp->year);
+    	args[7].l = (*env)->NewStringUTF(env, tmp->genre);
+    	args[8].l = (*env)->NewStringUTF(env, tmp->psfby);
+    	args[9].l = (*env)->NewStringUTF(env, tmp->comment);
+    	args[10].l = (*env)->NewStringUTF(env, tmp->copyright);
+    	object = (*env)->NewObjectA(env, cls, constructor, args);
+		sexy_freepsfinfo(tmp);
+
+		return object;
+    }
+    else {
+    	sexypsf_dbg_printf("get psf info fail");
+    	return NULL;
+    }
+}
+
+jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpos(JNIEnv* env, jobject thiz)
+{
+	return psf_get_pos();
+}

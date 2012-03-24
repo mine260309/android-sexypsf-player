@@ -349,33 +349,42 @@ public class PsfPlaybackService extends Service
 	
 	public long duration() {
 		synchronized(this) {
-		//TODO
-		return 0;
+			if (PsfPlayer != null) {
+				return PsfPlayer.GetDuration();
+			}
+			return 0;
 		}
 	}
 	public long position() {
 		synchronized(this) {
-		//TODO
-		return 0;
+			if (PsfPlayer != null) {
+				return PsfPlayer.GetPosition();
+			}
+			return 0;
 		}
 	}
 	public String getTrackName() {
 		synchronized(this) {
-		//TODO
-		return "";
+			if (PsfPlayer != null) {
+				return PsfPlayer.GetTrack();
+			}
+			return "";
 		}
 	}
 	public String getAlbumName() {
 		synchronized(this) {
-		//TODO
-		return "";
+			if (PsfPlayer != null) {
+				return PsfPlayer.GetAlbum();
+			}
+			return "";
 		}
 	}
 	
     public String getArtistName() {
-		synchronized(this) {
-			return "";
+		if (PsfPlayer != null) {
+			return PsfPlayer.GetArtist();
 		}
+		return "";
     }
     
     private void notifyChange(String what) {

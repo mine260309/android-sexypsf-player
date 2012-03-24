@@ -48,4 +48,44 @@ public class MineSexyPsfLib {
 
 	/** Native function to get the audio data from sexypsf */
 	public static native int sexypsfputaudiodataindex(byte[] arr, int index, int size);
+	
+	/** Native function to get the psf info from sexypsf */
+	public static native PsfInfo sexypsfgetpsfinfo(String filename);
+	
+	/** Native function to get the current pos */
+	public static native int sexypsfgetpos();
+}
+
+class PsfInfo {
+	public int duration;
+	public int stop;
+	public int fade;
+	public String title;
+	public String artist;
+	public String game;
+	public String year;
+	public String genre;
+	public String psfby;
+	public String comment;
+	public String copyright;
+	
+	public PsfInfo(int duration, int stop, int fade, String title,
+			String artist, String game, String year, String genre,
+			String psfby, String comment, String copyright) {
+		this.duration = duration;
+		this.stop = stop;
+		this.fade = fade;
+		this.title = title;
+		this.artist = artist;
+		this.game = game;
+		this.year = year;
+		this.genre = genre;
+		this.psfby = psfby;
+		this.comment = comment;
+		this.copyright = copyright;
+	}
+	public PsfInfo(int test) {
+		// Empty
+		duration = test;
+	}
 }

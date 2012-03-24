@@ -402,7 +402,7 @@ SIDE EFFECTS:
 Notes:
    This function is called by SDL Audio lib, it requests "len" size for the audio data,
    we need to feed the data in "stream" to play the sound.
-   
+
 ==================================================================================================*/
 static void psf_audio_callback(void *userdata, Uint8 *stream, int len)
 {
@@ -1021,6 +1021,32 @@ int psf_audio_putdata(uint8_t *stream, int len)
 
 /*==================================================================================================
 
+FUNCTION: psf_get_pos
+
+DESCRIPTION: get the current position, in seconds
+
+ARGUMENTS PASSED:
+   None
+
+RETURN VALUE:
+   the current position in seconds
+
+DEPENDENCIES:
+   None
+
+SIDE EFFECTS:
+   None
+
+Notes:
+   None
+==================================================================================================*/
+int psf_get_pos()
+{
+  return my_sexy_get_cur_time();
+}
+
+/*==================================================================================================
+
 FUNCTION: sexypsf_bufferstatus
 
 DESCRIPTION: get the buffer status of sexy audio
@@ -1048,5 +1074,3 @@ static int sexypsf_bufferstatus()
     else
         return SEXY_BUFFER_FULL;
 }
-
-

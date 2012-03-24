@@ -19,13 +19,27 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 -->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
-<resources>
     <string name="minepsfplayer_app">MinePsfPlayer</string>
     <string name="menu_exit">Exit</string>
     <string name="psfplaybacklabel">Psf Playing</string>
     <string name="unknown_artist_name">Unknown artist</string>
     <string name="play_all">Play all</string>
     <string name="shuffle_all">Shuffle all</string>
+    
+    <!-- Do not translate. Duration format for duration < 1 hour -->
+    <string translatable="false" name="durationformatshort"><xliff:g id="format">%2$d:%5$02d</xliff:g></string>
+    <!-- Do not translate. Duration format for duration >= 1 hour -->
+    <string translatable="false" name="durationformatlong"><xliff:g id="format">%1$d:%3$02d:%5$02d</xliff:g></string>
+    
+    
+    <!-- Dialog box title -->
+    <string name="service_start_error_title">Playback problem</string>
+    <!-- Dialog box message -->
+    <string name="service_start_error_msg">Sorry, the song could not be played.</string>
+    <!-- Dialog box button -->
+    <string name="service_start_error_button">OK</string>
+
 </resources>
 

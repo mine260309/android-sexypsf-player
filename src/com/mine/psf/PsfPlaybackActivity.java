@@ -22,15 +22,19 @@ import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -234,7 +238,10 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         f.addAction(PsfPlaybackService.PLAYSTATE_CHANGED);
         f.addAction(PsfPlaybackService.PLAYBACK_COMPLETE);
         registerReceiver(mStatusListener, new IntentFilter(f));
-        // updateTrackInfo();
+
+        updateTrackInfo();
+        long next = refreshNow();
+        queueNextRefresh(next);
     }
 
     @Override
@@ -248,6 +255,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     public void onResume() {
         super.onResume();
     	Log.d(LOGTAG, "onResume");
+        updateTrackInfo();
         setPauseButtonImage();
     }
     
@@ -283,11 +291,16 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     		mPauseButton.setImageResource(android.R.drawable.ic_media_play);
     	}
     }
-    
+
     private ServiceConnection osc = new ServiceConnection() {
         public void onServiceConnected(ComponentName classname, IBinder obj) {
             try {
                 mService = ((PsfPlaybackService.ServiceBinder)obj).getService();
+
+                updateTrackInfo();
+                long next = refreshNow();
+                queueNextRefresh(next);
+
                 // Assume something is playing when the service says it is,
                 // but also if the audio ID is valid but the service is paused.
                 if ( mService.isActive()) {
@@ -312,5 +325,92 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         public void onServiceDisconnected(ComponentName classname) {
             mService = null;
         }
-};
+    };
+
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case REFRESH:
+                    long next = refreshNow();
+                    queueNextRefresh(next);
+                    break;
+                    
+                case QUIT:
+                    // This can be moved back to onCreate once the bug that prevents
+                    // Dialogs from being started from onCreate/onResume is fixed.
+                    new AlertDialog.Builder(PsfPlaybackActivity.this)
+                            .setTitle(R.string.service_start_error_title)
+                            .setMessage(R.string.service_start_error_msg)
+                            .setPositiveButton(R.string.service_start_error_button,
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int whichButton) {
+                                            finish();
+                                        }
+                                    })
+                            .setCancelable(false)
+                            .show();
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void queueNextRefresh(long delay) {
+        if (!paused) {
+            Message msg = mHandler.obtainMessage(REFRESH);
+            mHandler.removeMessages(REFRESH);
+            mHandler.sendMessageDelayed(msg, delay);
+        }
+    }
+
+    private long refreshNow() {
+    	if(mService == null) {
+    		return 500;    		
+    	}
+    	long pos = mPosOverride < 0 ? mService.position() : mPosOverride;
+    	long remaining = 1000 - (pos % 1000);
+    	if ((pos >= 0) && (mDuration > 0)) {
+    		mCurrentTime.setText(PsfUtils.makeTimeString(this, pos));
+
+    		if (mService.isPlaying()) {
+    			mCurrentTime.setVisibility(View.VISIBLE);
+    		} else {
+    			// blink the counter
+    			int vis = mCurrentTime.getVisibility();
+    			mCurrentTime.setVisibility(vis == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
+    			remaining = 500;
+    		}
+
+    		mProgress.setProgress((int) (1000 * pos / mDuration));
+    	} else {
+    		mCurrentTime.setText("--:--");
+    		mProgress.setProgress(1000);
+    	}
+    	// return the number of milliseconds until the next full second, so
+    	// the counter can be updated at just the right time
+    	return remaining;
+    }
+
+    private void updateTrackInfo() {
+        if (mService == null) {
+            return;
+        }
+        ((View) mArtistName.getParent()).setVisibility(View.VISIBLE);
+        ((View) mAlbumName.getParent()).setVisibility(View.VISIBLE);
+        String artistName = mService.getArtistName();
+        if (artistName.equals("")) {
+        	artistName = getString(R.string.unknown_artist_name);
+        }
+        mArtistName.setText(artistName);
+        mAlbumName.setText(mService.getAlbumName());
+        mTrackName.setText(mService.getTrackName());
+        //        	mAlbumArtHandler.removeMessages(GET_ALBUM_ART);
+        //        	mAlbumArtHandler.obtainMessage(GET_ALBUM_ART, new AlbumSongIdWrapper(albumid, songid)).sendToTarget();
+        mAlbum.setVisibility(View.VISIBLE);
+        mDuration = mService.duration();
+        mTotalTime.setText(PsfUtils.makeTimeString(this, mDuration));
+    }
 }
