@@ -27,7 +27,7 @@ Revision History:
 Author                          Date        Description of Changes
 -------------------------   ------------    -------------------------------------------
 Lei Yu                      08/30/2009	    Initial Creation, basic playback for psf file on Android platform
-
+Lei Yu                      03/25/2012	    Code clean up, remove SDL related code
 ====================================================================================================
                                          INCLUDE FILES
 ==================================================================================================*/
@@ -41,17 +41,7 @@ Lei Yu                      08/30/2009	    Initial Creation, basic playback for 
 
 #define DEBUG_LEVEL 1
 
-#ifdef USE_SDL
-#include "sexypsf_psp.h"
-#else
 #include "sexypsf_android.h"
-#endif
-
-#ifdef USE_SDL
-#include <SDL/SDL.h>
-#include <SDL/SDL_thread.h>
-#include <SDL/SDL_joystick.h>
-#endif
 
 /*==================================================================================================
                                      GLOBAL FUNCTIONS
@@ -77,23 +67,15 @@ volatile PSF_CMD    global_command;             //the global command
 volatile PSF_STATUS global_psf_status;          //the global status
 int                 global_seektime = 0;        //the global seek time
 
-#ifdef USE_SDL_MUTEX
-SDL_mutex* audio_buf_mutex;                     //the mutex to control the access of the audio buffer
-#else
-static char buffer_use_flag = 0;                //the mutex to control the access of the audio buffer
-#endif
-
-#ifndef USE_SDL_THREAD
+static int mutex_initialized = FALSE;
+static pthread_mutex_t audio_buf_mutex;
 static pthread_t dethread;                      //the play back thread
-#else
-static SDL_Thread* dethread;
-#endif /* USE_SDL_THREAD */
 
 typedef enum
 {
   SEXY_BUFFER_EMPTY,
   SEXY_BUFFER_FULL
-};
+} SEXY_BUFFER_STATE;
 
 /*==================================================================================================
                                      LOCAL FUNCTION PROTOTYPES
@@ -189,14 +171,9 @@ static int put_audio_buf(void* buf, int len)
     int put_len1, put_len2;
     int actual_put_len;
     debug_printf2("%s: buf %08X, len %d", __FUNCTION__, buf, len);
-#ifdef USE_SDL_MUTEX
-    SDL_LockMutex(audio_buf_mutex);
 
-#else
-    while(buffer_use_flag)
-        SDL_Delay(1);
-    buffer_use_flag = 1;
-#endif
+    pthread_mutex_lock(&audio_buf_mutex);
+
     if(free_size > len)
     {
         actual_put_len = len;
@@ -206,11 +183,8 @@ static int put_audio_buf(void* buf, int len)
         actual_put_len = free_size;
     }
     free_size -= actual_put_len;
-#ifdef USE_SDL_MUTEX
-    SDL_UnlockMutex(audio_buf_mutex);
-#else
-    buffer_use_flag = 0;
-#endif
+
+    pthread_mutex_unlock(&audio_buf_mutex);
 
     if(put_index + actual_put_len < AUDIO_BLOCK_BUFFER_SIZE)
     {
@@ -261,14 +235,8 @@ static int get_audio_buf(void* buf_ptr, int wanted_len)
     int data_len_in_buffer;
 
     debug_printf2("%s: buf %08X, len %d", __FUNCTION__, buf_ptr, wanted_len);
-#ifdef USE_SDL_MUTEX
-    SDL_LockMutex(audio_buf_mutex);
 
-#else
-    while(buffer_use_flag)
-        SDL_Delay(1);
-    buffer_use_flag = 1;
-#endif
+    pthread_mutex_lock(&audio_buf_mutex);
 
     data_len_in_buffer = AUDIO_BLOCK_BUFFER_SIZE - free_size;
     if(data_len_in_buffer > wanted_len)
@@ -282,11 +250,7 @@ static int get_audio_buf(void* buf_ptr, int wanted_len)
     if(actual_get_len != 0)
         free_size += actual_get_len;
 
-#ifdef USE_SDL_MUTEX
-    SDL_UnlockMutex(audio_buf_mutex);
-#else
-    buffer_use_flag = 0;
-#endif
+    pthread_mutex_unlock(&audio_buf_mutex);
 
     if(actual_get_len!=0)
     {
@@ -360,100 +324,15 @@ dofunky:
             if(sexypsf_bufferstatus() == SEXY_BUFFER_EMPTY)
                 break;
         }
-        SDL_Delay(2000);
+        usleep(100000);
     }
 
     debug_printf("playloop exit\n");
 
     global_psf_status = PSF_STATUS_STOPPED;
-#ifndef USE_SDL_THREAD
     pthread_exit(0);
-#else
-    {
-        SDL_Event event;
-        event.type = SDL_QUIT;
-        SDL_PushEvent(&event);
-    }
-#endif
     return NULL;
 }
-
-#ifdef USE_SDL_THREAD
-/*==================================================================================================
-
-FUNCTION: psf_audio_callback
-
-DESCRIPTION: the callback function by SDL audio
-
-ARGUMENTS PASSED:
-   userdata - the pointer to userdata when SDL_OpenAudio is called, here it's always NULL
-   stream   - the pointer to the audio buffer we need to feed
-   len      - the length of the stream
-
-RETURN VALUE:
-   None
-
-DEPENDENCIES:
-   None
-
-SIDE EFFECTS:
-   None
-
-Notes:
-   This function is called by SDL Audio lib, it requests "len" size for the audio data,
-   we need to feed the data in "stream" to play the sound.
-
-==================================================================================================*/
-static void psf_audio_callback(void *userdata, Uint8 *stream, int len)
-{
-#ifdef USE_DEBUG_PRINTF
-    static int debug_index = 0;
-#endif
-    static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
-    int get_len, audio_data_index;
-//int get_audio_buf(void* buf_ptr, int wanted_len)
-
-    debug_printf2("in psf_audio_callback: %d\n", debug_index++);
-
-    if(len > AUDIO_BLOCK_BUFFER_SIZE)
-        handle_error();
-
-/*  if(global_clear_buf_flag)
-    {
-        printf("in callback clear\n");
-        memset(audio_static_data, 0, AUDIO_BLOCK_BUFFER_SIZE);
-        SDL_MixAudio(stream, audio_static_data, len, SDL_MIX_MAXVOLUME);
-        return;
-    }*/
-    audio_data_index = 0;
-
-    while(audio_data_index < len)
-    {
-        if(global_command == CMD_STOP)
-        {
-            sexypsf_clear_audio_buffer();
-            memset(audio_static_data, 0, len);
-            break;
-        }
-        get_len = get_audio_buf(audio_static_data+audio_data_index, len-audio_data_index);
-        audio_data_index+=get_len;
-
-        if(get_len == 0)
-        {// if there's no audio now, let's mute
-            memset(audio_static_data, 0, len);
-            break;
-        }
-        SDL_Delay(1);
-    }
-
-    SDL_MixAudio(stream, audio_static_data, len, SDL_MIX_MAXVOLUME);
-
-    //SDL_Delay(1);
-    //while(get_len < len);
-
-    return;
-}
-#endif
 
 /*==================================================================================================
 
@@ -480,18 +359,13 @@ Notes:
 ==================================================================================================*/
 void sexypsf_init()
 {
-#ifdef USE_SDL_MUTEX
-    if(SDL_Init(SDL_INIT_TIMER|SDL_INIT_AUDIO|SDL_INIT_VIDEO))
-    {
-        fprintf(stderr, "Could not initialize SDL - %s\n", SDL_GetError());
-        exit(-1);
-    }
-    audio_buf_mutex = SDL_CreateMutex();
-    if(audio_buf_mutex == NULL)
-        handle_error();
-#else
-    buffer_use_flag = 0;
-#endif
+	if (!mutex_initialized) {
+		if (pthread_mutex_init(&audio_buf_mutex, NULL) != 0) {
+			handle_error();
+		}
+		mutex_initialized = TRUE;
+	}
+
     free_size = AUDIO_BLOCK_BUFFER_SIZE;
     global_command = CMD_NONE;
 }
@@ -525,146 +399,6 @@ static void sexypsf_clear_audio_buffer()
                                      GLOBAL FUNCTIONS
 ==================================================================================================*/
 
-#ifdef USE_SDL_MUTEX
-/*==================================================================================================
-
-FUNCTION: sexypsf_SDL_quit
-
-DESCRIPTION: quit the sexypsf_SDL lib
-
-ARGUMENTS PASSED:
-   None
-
-RETURN VALUE:
-   None
-
-DEPENDENCIES:
-   None
-
-SIDE EFFECTS:
-   None
-
-==================================================================================================*/
-void sexypsf_SDL_quit()
-{
-#ifdef USE_SDL_MUTEX
-    SDL_DestroyMutex(audio_buf_mutex);
-#endif
-    SDL_Quit();
-}
-
-/*==================================================================================================
-
-FUNCTION: psf_play_file
-
-DESCRIPTION: play a psf file
-
-ARGUMENTS PASSED:
-   file_name - file name string, NULL terminated
-
-RETURN VALUE:
-   None
-
-DEPENDENCIES:
-   None
-
-SIDE EFFECTS:
-   This function will not return until the playback is done or psf_stop is called.
-
-==================================================================================================*/
-void psf_play_file(char* file_name)
-{
-    SDL_AudioSpec wanted_spec, spec;
-    SDL_Event event;
-#ifdef DEBUG_SHOW_TIME
-    SDL_TimerID show_time_id;
-#endif
-
-    if(!(PSFInfo=sexy_load(file_name)))
-    {
-        handle_error();
-    }
-    stored_filename = file_name;
-
-    wanted_spec.freq = 44100;
-    wanted_spec.format = AUDIO_S16SYS;
-    wanted_spec.channels = 2;
-    wanted_spec.silence = 0;
-    wanted_spec.samples = 1024;//SDL_AUDIO_BUFFER_SIZE;
-    wanted_spec.callback = psf_audio_callback;
-    wanted_spec.userdata = NULL;
-    if(SDL_OpenAudio(&wanted_spec, &spec) < 0)
-    {
-        fprintf(stderr, "SDL_OpenAudio: %s\n", SDL_GetError());
-        handle_error();
-    }
-    SDL_SetVideoMode(100, 100, 0, SDL_RESIZABLE |SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_HWACCEL/*SDL_NOFRAME*/);
-
-#ifdef DEBUG_SHOW_TIME
-    show_time_id = SDL_AddTimer(1000, sexypsf_show_time, NULL);
-#endif
-//    pthread_create(&dethread,0,playloop,0);
-	dethread = SDL_CreateThread(playloop, NULL);
-    SDL_PauseAudio(0);
-    while(1)
-    {
-        int incr;
-        SDL_WaitEvent(&event);
-        switch(event.type)
-        {
-        case SDL_KEYDOWN:
-            switch(event.key.keysym.sym)
-            {
-                case SDLK_q:
-                    goto quit_clause;
-                    break;
-                case SDLK_LEFT:
-                    incr = -10*1000;
-                    goto do_seek;
-                case SDLK_RIGHT:
-                    incr = 10*1000;
-                    goto do_seek;
-                case SDLK_UP:
-                    incr = 60*1000;
-                    goto do_seek;
-                case SDLK_DOWN:
-                    incr = -60*1000;
-                    goto do_seek;
-                do_seek:
-                    psf_seek(incr, PSF_SEEK_CUR);
-                    break;
-                case SDLK_p:
-                    psf_pause(TRUE);
-                    break;
-                case SDLK_c:
-                    psf_pause(FALSE);
-                    break;
-                default:
-                    break;
-            }
-            break;
-        case SDL_QUIT:
-quit_clause:
-            debug_printf("quit clause\n");
-            psf_stop();
-            debug_printf("sdl_quit\n");
-            goto psf_exit;
-            break;
-        default:
-            SDL_Delay(1);
-            break;
-        }
-        SDL_Delay(1);
-    }
-psf_exit:
-
-#ifdef DEBUG_SHOW_TIME
-    SDL_RemoveTimer(show_time_id);
-#endif
-    debug_printf("play end\n");
-}
-
-#else
 /*==================================================================================================
 
 FUNCTION: psf_open
@@ -686,6 +420,9 @@ SIDE EFFECTS:
 ==================================================================================================*/
 BOOL psf_open(const char* file_name)
 {
+	if (PSFInfo!= NULL) {
+		sexy_freepsfinfo(PSFInfo);
+	}
     if(!(PSFInfo=sexy_load((char*)file_name)))
     {
         debug_printf("%s: open file %s fail!!\n", __FUNCTION__, file_name);
@@ -703,13 +440,9 @@ BOOL psf_open(const char* file_name)
 void psf_play()
 {
     debug_printf("%s: playing file %s...\n", __FUNCTION__, stored_filename);
-#ifndef USE_SDL_THREAD
     pthread_create(&dethread,0,playloop,0);
-#else
-    dethread = SDL_CreateThread(playloop, NULL);
-#endif
 }
-#endif /* USE_SDL_THREAD */
+
 /*==================================================================================================
 
 FUNCTION: psf_stop
@@ -733,11 +466,7 @@ void psf_stop()
 {
     debug_printf("%s\n", __FUNCTION__);
     global_command = CMD_STOP;
-#ifndef USE_SDL_THREAD
     pthread_join(dethread,0);
-#else
-    SDL_WaitThread(dethread, NULL);
-#endif
 }
 
 /*==================================================================================================
@@ -767,17 +496,11 @@ void psf_pause(BOOL pause)
     if((global_psf_status == PSF_STATUS_PLAYING) && pause)
     {
 //printf("pause audio\n");
-#ifdef USE_SDL_MUTEX
-        SDL_PauseAudio(1);
-#endif
         global_psf_status = PSF_STATUS_PAUSE;
     }
     else if((global_psf_status == PSF_STATUS_PAUSE) && !pause)
     {
 //printf("resume audio\n");
-#ifdef USE_SDL_MUTEX
-        SDL_PauseAudio(0);
-#endif
         global_psf_status = PSF_STATUS_PLAYING;
     }
 }
@@ -846,14 +569,6 @@ void psf_seek(int seek, PSF_SEEK_MODE mode)
             default:
             break;
         }
-        /*
-        global_seektime = my_sexy_seek(seek);
-        sexypsf_clear_audio_buffer();
-        if(seek < 0)
-        {
-            sexy_stop();
-            global_command = CMD_SEEK;
-        }*/
     }
 }
 
@@ -896,7 +611,7 @@ void sexyd_update(unsigned char *Buffer, long count)
     {
         put_len = put_audio_buf(Buffer+putindex, count-putindex);
         putindex+=put_len;
-        SDL_Delay(1);
+        usleep(1000);
     }
 #if 0
     if(global_command == CMD_SEEK)
@@ -923,7 +638,6 @@ void sexyd_update(unsigned char *Buffer, long count)
     debug_printf2("%s returned\n", __FUNCTION__);
 }
 
-#ifndef USE_SDL_MUTEX
 /*==================================================================================================
 
 FUNCTION: psf_audio_putdata
@@ -949,37 +663,17 @@ Notes:
 ==================================================================================================*/
 int psf_audio_putdata(uint8_t *stream, int len)
 {
-#if 0   // just use following code to check the functionality
-    static int flag = 1;
-    int i;
-
-    if(flag)
-        srand(0);
-    for(i = 0;i<len;++i)
-    {
-        stream[i] = (uint8_t)rand();
-    }
-    return;
-#endif
 #ifdef USE_DEBUG_PRINTF
     static int debug_index = 0;
 #endif
     static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
     int get_len, audio_data_index;
-//int get_audio_buf(void* buf_ptr, int wanted_len)
 
     debug_printf2("in psf_audio_callback: %d\n", debug_index++);
 
     if(len > AUDIO_BLOCK_BUFFER_SIZE)
         handle_error();
 
-/*  if(global_clear_buf_flag)
-    {
-        printf("in callback clear\n");
-        memset(audio_static_data, 0, AUDIO_BLOCK_BUFFER_SIZE);
-        SDL_MixAudio(stream, audio_static_data, len, SDL_MIX_MAXVOLUME);
-        return;
-    }*/
     audio_data_index = 0;
 
     while(audio_data_index < len)
@@ -999,25 +693,12 @@ int psf_audio_putdata(uint8_t *stream, int len)
         	len = 0;
         	break;
         }
-#if 0 //This piece of code makes the thread not blocked, but we need to block the thread now, so comment it!
-        if(get_len == 0)
-        {// if there's no audio now, let's mute
-            memset(audio_static_data, 0, len);
-            break;
-        }
-#endif
-        SDL_Delay(1);
+        usleep(1000);
     }
 
-//    SDL_MixAudio(stream, audio_static_data, len, SDL_MIX_MAXVOLUME);
     memcpy(stream, audio_static_data, len);
-
-    //SDL_Delay(1);
-    //while(get_len < len);
-
     return len;
 }
-#endif
 
 /*==================================================================================================
 
@@ -1073,4 +754,38 @@ static int sexypsf_bufferstatus()
         return SEXY_BUFFER_EMPTY;
     else
         return SEXY_BUFFER_FULL;
+}
+
+
+/*==================================================================================================
+
+FUNCTION: sexypsf_quit
+
+DESCRIPTION: quit sexypsf, release all resources
+
+ARGUMENTS PASSED:
+   None
+
+RETURN VALUE:
+   None
+
+DEPENDENCIES:
+   None
+
+SIDE EFFECTS:
+   None
+
+Notes:
+   None
+==================================================================================================*/
+void sexypsf_quit()
+{
+	psf_stop();
+	if (PSFInfo!= NULL) {
+		sexy_freepsfinfo(PSFInfo);
+	}
+	if (mutex_initialized) {
+		pthread_mutex_destroy(&audio_buf_mutex);
+		mutex_initialized = FALSE;
+	}
 }

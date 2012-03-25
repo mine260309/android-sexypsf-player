@@ -357,3 +357,10 @@ jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpos(JNIEnv* env, jobject
 {
 	return psf_get_pos();
 }
+
+
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfquit( JNIEnv* env,
+                                             jobject thiz)
+{
+	sexypsf_quit();
+}

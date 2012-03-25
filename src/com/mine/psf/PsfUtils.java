@@ -137,6 +137,14 @@ public class PsfUtils {
     		sService.play(0);
     	}
     }
+    
+    public static void quit() {
+    	if (sService != null) {
+    		sService.stop();
+    		sService.quit();
+    	}
+    }
+
     static void updateNowPlaying(Activity a) {
         View nowPlayingView = a.findViewById(R.id.nowplaying);
         if (nowPlayingView == null) {

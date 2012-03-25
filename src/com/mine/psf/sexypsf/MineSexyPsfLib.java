@@ -54,6 +54,9 @@ public class MineSexyPsfLib {
 	
 	/** Native function to get the current pos */
 	public static native int sexypsfgetpos();
+	
+	/** Native function to release all the resources */
+	public static native void sexypsfquit();
 }
 
 class PsfInfo {

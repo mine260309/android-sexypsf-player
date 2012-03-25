@@ -388,7 +388,13 @@ public class PsfPlaybackService extends Service
 		}
 		return "";
     }
-    
+
+    public void quit() {
+		if (PsfPlayer != null) {
+			PsfPlayer.Quit();
+		}
+	}
+
     private void notifyChange(String what) {
         Intent i = new Intent(what);
         i.putExtra("album",getAlbumName());

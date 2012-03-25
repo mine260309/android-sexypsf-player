@@ -148,7 +148,7 @@ public class PsfFileBrowserActivity extends Activity
     }
     
     public void ExitApp() {
-    	PsfUtils.stop(this);
+    	PsfUtils.quit();
     	finish();
     }
 

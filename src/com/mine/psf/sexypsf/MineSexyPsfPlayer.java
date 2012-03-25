@@ -185,6 +185,10 @@ public class MineSexyPsfPlayer {
 		}
 	}
 	
+	public void Quit() {
+		MineSexyPsfLib.sexypsfquit();
+	}
+	
 	// The thread that read data from psf lib
 	private class PsfAudioGetThread extends Thread {
 		public void run(){

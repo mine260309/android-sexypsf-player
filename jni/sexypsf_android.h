@@ -69,13 +69,6 @@ typedef unsigned char BOOL;
 #define FALSE 0
 #endif
 
-/* The original code is written for PSP with SDL support, now we don't use SDL on android platform */
-#ifdef USE_SDL
-#define USE_SDL_MUTEX
-#define USE_SDL_THREAD
-#endif
-
-#define SDL_Delay(a) usleep(a<<4)
 
 //#define DEBUG_SHOW_TIME
 
@@ -271,5 +264,27 @@ Notes:
 ==================================================================================================*/
 int psf_get_pos();
 
+/*==================================================================================================
+
+FUNCTION: sexypsf_quit
+
+DESCRIPTION: quit sexypsf, release all resources
+
+ARGUMENTS PASSED:
+   None
+
+RETURN VALUE:
+   None
+
+DEPENDENCIES:
+   None
+
+SIDE EFFECTS:
+   None
+
+Notes:
+   None
+==================================================================================================*/
+void sexypsf_quit();
 #endif /* _SEXYPSF_ANDROID_H_ */
 
