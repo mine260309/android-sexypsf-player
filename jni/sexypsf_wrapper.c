@@ -309,7 +309,7 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
 
     if((tmp=sexy_getpsfinfo(name)))
     {
-    	static jclass cls = NULL;
+    	jclass cls = NULL;
     	jmethodID constructor;
     	jvalue args[11];
     	jobject object;
@@ -317,9 +317,7 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
     	sexypsf_dbg_printf("get psf info success");
 
     	// get a reference to the class
-    	if (cls == NULL) {
-    		cls = (*env)->FindClass(env, "com/mine/psf/sexypsf/PsfInfo");
-    	}
+    	cls = (*env)->FindClass(env, "com/mine/psf/sexypsf/PsfInfo");
     	if (cls == NULL) {
     		sexypsf_dbg_printf("Failed to get class");
     		return NULL;

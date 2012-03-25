@@ -238,6 +238,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         IntentFilter f = new IntentFilter();
         f.addAction(PsfPlaybackService.PLAYSTATE_CHANGED);
         f.addAction(PsfPlaybackService.PLAYBACK_COMPLETE);
+        f.addAction(PsfPlaybackService.META_CHANGED);
         registerReceiver(mStatusListener, new IntentFilter(f));
 
         updateTrackInfo();
@@ -280,6 +281,12 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
                 }
             } else if (action.equals(PsfPlaybackService.PLAYSTATE_CHANGED)) {
                 setPauseButtonImage();
+            } else if (action.equals(PsfPlaybackService.META_CHANGED)) {
+                // redraw the artist/title info and
+                // set new max for progress bar
+                updateTrackInfo();
+                setPauseButtonImage();
+                queueNextRefresh(1);
             }
         }
     };
@@ -381,7 +388,8 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     		} else {
     			// blink the counter
     			int vis = mCurrentTime.getVisibility();
-    			mCurrentTime.setVisibility(vis == View.INVISIBLE ? View.VISIBLE : View.INVISIBLE);
+    			mCurrentTime.setVisibility(vis == View.INVISIBLE ?
+    					View.VISIBLE : View.INVISIBLE);
     			remaining = 500;
     		}
 

@@ -26,8 +26,11 @@ import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -106,6 +109,7 @@ public class PsfFileBrowserActivity extends Activity
         if (mToken != null) {
             PsfUtils.unbindFromService(mToken);
         }
+        unregisterReceiverSafe(mTrackListener);
         super.onDestroy();
     }
 
@@ -152,6 +156,9 @@ public class PsfFileBrowserActivity extends Activity
 	public void onServiceConnected(ComponentName name, IBinder service) {
 		Log.d(LOGTAG, "onServiceConnected");
         PsfUtils.updateNowPlaying(this);
+        IntentFilter f = new IntentFilter();
+        f.addAction(PsfPlaybackService.META_CHANGED);
+        registerReceiver(mTrackListener, new IntentFilter(f));
 	}
 
 	@Override
@@ -159,6 +166,30 @@ public class PsfFileBrowserActivity extends Activity
 		Log.d(LOGTAG, "onServiceDisconnected");
 		finish();
 	}
+	
+
+    private BroadcastReceiver mTrackListener = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(PsfPlaybackService.META_CHANGED)) {
+            	PsfUtils.updateNowPlaying(PsfFileBrowserActivity.this);
+            }
+        }
+    };
+    
+    /**
+     * Unregister a receiver, but eat the exception that is thrown if the
+     * receiver was never registered to begin with. This is a little easier
+     * than keeping track of whether the receivers have actually been
+     * registered by the time onDestroy() is called.
+     */
+    private void unregisterReceiverSafe(BroadcastReceiver receiver) {
+        try {
+            unregisterReceiver(receiver);
+        } catch (IllegalArgumentException e) {
+            // ignore
+        }
+    }
 }
 
 class Mp3Filter implements FilenameFilter {

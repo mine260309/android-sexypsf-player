@@ -57,7 +57,8 @@ public class PsfPlaybackService extends Service
     public static final String CMDNEXT = "next";
     public static final String TOGGLEPAUSE_ACTION = "com.mine.psf.psfservicecmd.togglepause";
     public static final String PAUSE_ACTION = "com.mine.psf.psfservicecmd.pause";
-    
+
+    public static final String META_CHANGED = "com.mine.psf.metachanged";
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
 
@@ -247,6 +248,7 @@ public class PsfPlaybackService extends Service
 			}
 			Log.d(LOGTAG, "openFile: " + path);
 			PsfPlayer.Open(path);
+            notifyChange(META_CHANGED);
 		}
 	}
 
@@ -408,6 +410,7 @@ public class PsfPlaybackService extends Service
                     if (action.equals(Intent.ACTION_MEDIA_EJECT)) {
                         Log.d(LOGTAG, "SD Card Ejected, stop...");
                         stop();
+                        notifyChange(META_CHANGED);
                     } else if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
                     	//TODO: ???
                         Log.d(LOGTAG, "SD Card Mounted...");
