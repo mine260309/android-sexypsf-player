@@ -311,6 +311,10 @@ dofunky:
         else if(CMD_SEEK == global_command)
         {
             debug_printf("seek backward, re-open file, seektime: %d\n", global_seektime/44100);
+        	if (PSFInfo!= NULL) {
+        		sexy_freepsfinfo(PSFInfo);
+        		PSFInfo = NULL;
+        	}
             if(!(PSFInfo=sexy_load(stored_filename)))
             {
                 handle_error();
@@ -422,6 +426,7 @@ BOOL psf_open(const char* file_name)
 {
 	if (PSFInfo!= NULL) {
 		sexy_freepsfinfo(PSFInfo);
+		PSFInfo = NULL;
 	}
     if(!(PSFInfo=sexy_load((char*)file_name)))
     {
@@ -783,6 +788,7 @@ void sexypsf_quit()
 	psf_stop();
 	if (PSFInfo!= NULL) {
 		sexy_freepsfinfo(PSFInfo);
+		PSFInfo = NULL;
 	}
 	if (mutex_initialized) {
 		pthread_mutex_destroy(&audio_buf_mutex);
