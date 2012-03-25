@@ -50,6 +50,7 @@ public class MineAudioCircularBuffer {
 			e.printStackTrace();
 		}
     	put.release(avail);
+    	m_EndFlag = false;
     }
     
     public void init(int len) {

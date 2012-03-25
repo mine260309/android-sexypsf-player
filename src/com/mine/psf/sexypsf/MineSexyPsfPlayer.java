@@ -40,7 +40,7 @@ public class MineSexyPsfPlayer {
 	
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
-	private AudioTrack PsfAudioTrack;
+	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
 	private String PsfFileName;
@@ -59,11 +59,13 @@ public class MineSexyPsfPlayer {
 
 	public void Open(String psfFile) {
 		// 1) open audio device;
-		PsfAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
-        		AudioFormat.CHANNEL_CONFIGURATION_STEREO, 
-        		AudioFormat.ENCODING_PCM_16BIT,
-        		MINE_AUDIO_BUFFER_PUT_GET_LEN,
-        		AudioTrack.MODE_STREAM);
+		if (PsfAudioTrack == null) {
+			PsfAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
+	        		AudioFormat.CHANNEL_CONFIGURATION_STEREO, 
+	        		AudioFormat.ENCODING_PCM_16BIT,
+	        		MINE_AUDIO_BUFFER_PUT_GET_LEN,
+	        		AudioTrack.MODE_STREAM);
+		}
 
 		// 2) Open psf file
 		PsfFileName = psfFile;
@@ -77,6 +79,7 @@ public class MineSexyPsfPlayer {
 		isAudioTrackOpened = false;
 
 		// 3) Prepare get/put threads
+		CircularBuffer.Discard();
 		GetThread = new PsfAudioGetThread();
 		PutThread = new PsfAudioPutThread();
 	}
@@ -112,14 +115,18 @@ public class MineSexyPsfPlayer {
 
 	public void Stop() {
 		threadShallExit = true;
-		setState(PsfPlayerState.STATE_STOPPED);
+		setState(PsfPlayerState.STATE_IDLE);
 		PsfAudioTrack.stop();
 		isAudioTrackOpened = false;
 		MineSexyPsfLib.sexypsfstop();
 		try {
 			CircularBuffer.destroy();
-			GetThread.join();
-			PutThread.join();
+			if (GetThread != null) {
+				GetThread.join();
+			}
+			if (PutThread != null) {
+				PutThread.join();
+			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -130,8 +137,7 @@ public class MineSexyPsfPlayer {
 	}
 
 	public boolean isActive() {
-		return PlayerState != PsfPlayerState.STATE_IDLE
-			&& PlayerState != PsfPlayerState.STATE_STOPPED;
+		return PlayerState != PsfPlayerState.STATE_IDLE;
 	}
 	
 	public int GetPosition() {
@@ -197,7 +203,7 @@ public class MineSexyPsfPlayer {
 	        		// and then let itself exit
 	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", play to end");
 	        		CircularBuffer.setAudioBufferEnd();
-	        		PutThread.interrupt();
+	        		// TODO: should I reaaly need to interrupt? PutThread.interrupt();
 	        		break;
 	        	}
 	        	Log.d(LOGTAG, "Put audio data to buffer: " + ret);
@@ -210,7 +216,7 @@ public class MineSexyPsfPlayer {
 	private class PsfAudioPutThread extends Thread {
 		public void run() {
 			int counter = 0;
-			while(!isInterrupted())
+			while(!isInterrupted() && !CircularBuffer.getEndFlag())
 			{
 				if (threadShallExit) {
 					CircularBuffer.Discard();
@@ -234,29 +240,29 @@ public class MineSexyPsfPlayer {
 						CircularBuffer.GetReadBuffer(MINE_AUDIO_BUFFER_PUT_GET_LEN);
 					Log.d(LOGTAG, "Write data to HW: "+(counter++) +" len: "+chunk.len);
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
-					
 				} catch (InterruptedException e) {
-					// Check buffer size and if it's end
-					if (CircularBuffer.getEndFlag()) {
-						try {
-							MineAudioCircularBuffer.BufferChunk chunk =
-								CircularBuffer.GetReadBuffer(CircularBuffer.GetBufferAvailable());
-							PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
-						Log.d(LOGTAG, "PsfAudioPutThread end of playback");
-						// TODO: should I call audiotrack's stop here?
-						PsfAudioTrack.stop();
-						notifyStateChange(PsfPlayerState.STATE_STOPPED);
-						break;
-					}
-					else {
-						Log.e(LOGTAG, "Interrupted for unknown reason!");
-					}
-					// No more audio data, exit the thread
 					break;
 				}
+			}
+			
+			// Check buffer size and if it's end
+			if (CircularBuffer.getEndFlag()) {
+				try {
+					int left = CircularBuffer.GetBufferAvailable();
+					Log.d(LOGTAG, "PsfAudioPutThread end of playback, data left: " + left);
+					if (left > 0) {
+						MineAudioCircularBuffer.BufferChunk chunk =
+							CircularBuffer.GetReadBuffer(left);
+						Log.d(LOGTAG, "PsfAudioPutThread write left data");
+						PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+					}
+				} catch (InterruptedException e1) {}
+				// TODO: should I call audiotrack's stop here?
+				PsfAudioTrack.stop();
+				notifyStateChange(PsfPlayerState.STATE_STOPPED);
+			}
+			else {
+				Log.e(LOGTAG, "Interrupted for unknown reason!");
 			}
 			Log.d(LOGTAG, "PsfAudioPutThread exit!");
 		}
