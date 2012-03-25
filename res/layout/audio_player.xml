@@ -34,7 +34,7 @@
                 android:layout_height="54dip"
                 android:layout_marginTop="14dip" />
 
-           <ImageButton android:id="@+id/shuffle"
+           <!-- ImageButton android:id="@+id/shuffle"
                 android:layout_width="85dip"
                 android:layout_height="54dip"
                 android:layout_marginTop="20dip" />
@@ -42,7 +42,7 @@
            <ImageButton android:id="@+id/repeat"
                 android:layout_width="85dip"
                 android:layout_height="54dip"
-                android:layout_marginTop="20dip" />
+                android:layout_marginTop="20dip" / -->
 
         </LinearLayout>
 
@@ -90,7 +90,7 @@
             android:src="@drawable/ic_mp_album_playback" />
 
         <TextView android:id="@+id/albumname"
-            android:textSize="14sp"
+            android:textSize="18sp"
             android:singleLine="true"
             android:ellipsize="end"
             android:layout_gravity="center_vertical"
@@ -115,7 +115,7 @@
             android:src="@drawable/ic_mp_song_playback" />
 
         <TextView android:id="@+id/trackname"
-            android:textSize="14sp"
+            android:textSize="18sp"
             android:singleLine="true"
             android:ellipsize="end"
             android:layout_gravity="center_vertical"

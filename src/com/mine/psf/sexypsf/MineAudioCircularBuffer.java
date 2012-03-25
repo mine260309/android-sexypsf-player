@@ -20,10 +20,10 @@ package com.mine.psf.sexypsf;
 
 import java.util.concurrent.Semaphore;
 
-import android.util.Log;
+//import android.util.Log;
 
 public class MineAudioCircularBuffer {
-	private static String LOGTAG = "MineCircularBuffer";
+//	private static String LOGTAG = "MineCircularBuffer";
     private byte[] m_buffer;
     private int m_len;
     private int put_index, get_index;

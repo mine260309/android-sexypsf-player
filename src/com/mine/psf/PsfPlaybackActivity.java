@@ -126,7 +126,8 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         v = (View)mTrackName.getParent();
         v.setOnTouchListener(this);
         v.setOnLongClickListener(this);
-        
+
+        mAlbum.setImageResource(R.drawable.playstation_logo);
         mPrevButton = (RepeatingImageButton) findViewById(R.id.prev);
         mPrevButton.setOnClickListener(mPrevListener);
         //mPrevButton.setRepeatListener(mRewListener, 260);
@@ -148,12 +149,12 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 //        mRepeatButton = ((ImageButton) findViewById(R.id.repeat));
 //        mRepeatButton.setOnClickListener(mRepeatListener);
         
-        if (mProgress instanceof SeekBar) {
-            SeekBar seeker = (SeekBar) mProgress;
+//        if (mProgress instanceof SeekBar) {
+//            SeekBar seeker = (SeekBar) mProgress;
 //            seeker.setOnSeekBarChangeListener(mSeekListener);
-        }
+//        }
         mProgress.setMax(1000);
-        
+
         if (icicle != null) {
             mOneShot = icicle.getBoolean("oneshot");
         } else {
@@ -162,13 +163,13 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 
         mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
     }
-    
+
     private View.OnClickListener mPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
         }
     };
-    
+
     private View.OnClickListener mPrevListener = new View.OnClickListener() {
         public void onClick(View v) {
             if (mService == null) {

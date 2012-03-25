@@ -265,6 +265,7 @@ public class PsfPlaybackService extends Service
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "pause");
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+                gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
 			}
 		}
@@ -333,7 +334,6 @@ public class PsfPlaybackService extends Service
 	}
 
 	public boolean isPlaying() {
-		//TODO maybe this flag is not valid...
 		if (PsfPlayer != null) {
 			return PsfPlayer.isPlaying();
 		}
@@ -407,7 +407,7 @@ public class PsfPlaybackService extends Service
                     String action = intent.getAction();
                     if (action.equals(Intent.ACTION_MEDIA_EJECT)) {
                         Log.d(LOGTAG, "SD Card Ejected, stop...");
-                        //TODO: stop palyback and close file
+                        stop();
                     } else if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
                     	//TODO: ???
                         Log.d(LOGTAG, "SD Card Mounted...");
