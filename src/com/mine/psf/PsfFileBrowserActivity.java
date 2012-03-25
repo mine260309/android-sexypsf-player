@@ -33,6 +33,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Menu;
@@ -48,7 +49,8 @@ public class PsfFileBrowserActivity extends Activity
 									implements ServiceConnection
 {
 	private static final String LOGTAG = "PsfFileBrowserActivity";
-	private static final String MEDIA_PATH = new String("/sdcard/psf/");
+	private static final String MEDIA_PATH = new String(
+			Environment.getExternalStorageDirectory()+"/psf/");
 	private static final int ID_EXIT = 1;
 	private static final int ID_PLAY_ALL = 2;
 	private static final int ID_SHUFFLE_ALL = 3;
@@ -69,6 +71,7 @@ public class PsfFileBrowserActivity extends Activity
         MusicListView = (ListView) findViewById(R.id.psffilelist);
         MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
+        Log.e(LOGTAG, "Media Path is: " + MEDIA_PATH);
     	File home = new File(MEDIA_PATH);
     	File[] filteredFiles = home.listFiles( new Mp3Filter());
     	playList = new ArrayList<String>();
@@ -115,11 +118,11 @@ public class PsfFileBrowserActivity extends Activity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        boolean result = super.onCreateOptionsMenu(menu);
-        menu.add(0, ID_EXIT, 0, R.string.menu_exit);
+        super.onCreateOptionsMenu(menu);
+        menu.add(0, ID_EXIT, 0, R.string.menu_exit).setIcon(R.drawable.ic_menu_exit);
         menu.add(0, ID_PLAY_ALL, 0, R.string.play_all).setIcon(R.drawable.ic_menu_play_clip);
         menu.add(0, ID_SHUFFLE_ALL, 0, R.string.shuffle_all).setIcon(R.drawable.ic_menu_shuffle);
-        return result;
+        return true;
     }
     
     @Override

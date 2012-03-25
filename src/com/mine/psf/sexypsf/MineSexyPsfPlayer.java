@@ -31,6 +31,7 @@ public class MineSexyPsfPlayer {
 		public static final int STATE_PAUSED = 1;
 		public static final int STATE_PLAYING = 2;
 		public static final int STATE_STOPPED = 3;
+		public static final int STATE_PENDING_PLAY = 4;
 	}
 
 	public static final int PSFPLAY=0;
@@ -54,7 +55,7 @@ public class MineSexyPsfPlayer {
 
 	public MineSexyPsfPlayer() {
 		CircularBuffer = new MineAudioCircularBuffer(MINE_AUDIO_BUFFER_TOTAL_LEN);
-		setState(PsfPlayerState.STATE_IDLE);
+		setPsfState(PsfPlayerState.STATE_IDLE);
 	}
 
 	public void Open(String psfFile) {
@@ -75,7 +76,7 @@ public class MineSexyPsfPlayer {
 		//		", duration: " + PsfFileInfo.duration);
 		// Let sexypsf play so we can have audio buffer now
 		MineSexyPsfLib.sexypsfplay();
-		setState(PsfPlayerState.STATE_PAUSED);
+		setPsfState(PsfPlayerState.STATE_PENDING_PLAY);
 		isAudioTrackOpened = false;
 
 		// 3) Prepare get/put threads
@@ -87,35 +88,34 @@ public class MineSexyPsfPlayer {
 	public void Play(int playCmd) {
 		if (playCmd == PSFPLAY) {
 			if (!isAudioTrackOpened) {
-				Log.d(LOGTAG, "Open AudioTrack and play");
+				Log.d(LOGTAG, "Will open AudioTrack and play");
 				// Start playing after opened
 				threadShallExit = false;
-				PsfAudioTrack.play();
 				PsfAudioTrack.setStereoVolume(1, 1);
 				GetThread.start();
 				PutThread.start();
-				isAudioTrackOpened = true;
+				// Will switch to STATE_PLAYING in put thread
 			}
 			else {
 				Log.d(LOGTAG, "Resume");
 				// Play after pause
 				PsfAudioTrack.play();
 				MineSexyPsfLib.sexypsfpause(false);
+				setPsfState(PsfPlayerState.STATE_PLAYING);
 			}
-			setState(PsfPlayerState.STATE_PLAYING);
 		}
 		else if (playCmd == PSFPAUSE){
 			// Pause, only pause audio track, let psf lib running
 			Log.d(LOGTAG, "Pause");
 			PsfAudioTrack.pause();
 			MineSexyPsfLib.sexypsfpause(true);
-			setState(PsfPlayerState.STATE_PAUSED);
+			setPsfState(PsfPlayerState.STATE_PAUSED);
 		}
 	}
 
 	public void Stop() {
 		threadShallExit = true;
-		setState(PsfPlayerState.STATE_IDLE);
+		setPsfState(PsfPlayerState.STATE_IDLE);
 		PsfAudioTrack.stop();
 		isAudioTrackOpened = false;
 		MineSexyPsfLib.sexypsfstop();
@@ -133,7 +133,8 @@ public class MineSexyPsfPlayer {
 	}
 	
 	public boolean isPlaying() {
-		return PlayerState == PsfPlayerState.STATE_PLAYING;
+		return PlayerState == PsfPlayerState.STATE_PLAYING
+			|| PlayerState == PsfPlayerState.STATE_PENDING_PLAY;
 	}
 
 	public boolean isActive() {
@@ -193,6 +194,7 @@ public class MineSexyPsfPlayer {
 	private class PsfAudioGetThread extends Thread {
 		public void run(){
 			int ret;
+			int counter = 0;
 			while(true){
 	        	if (threadShallExit) {
 	        		CircularBuffer.Discard();
@@ -210,7 +212,7 @@ public class MineSexyPsfPlayer {
 	        		// TODO: should I reaaly need to interrupt? PutThread.interrupt();
 	        		break;
 	        	}
-	        	Log.d(LOGTAG, "Put audio data to buffer: " + ret);
+				Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
 	        }
 			Log.d(LOGTAG, "PsfAudioGetThread exit!");
 		}
@@ -227,6 +229,7 @@ public class MineSexyPsfPlayer {
 					break;
 				}
 				while(PlayerState != PsfPlayerState.STATE_PLAYING
+						&& PlayerState != PsfPlayerState.STATE_PENDING_PLAY
 						&& !threadShallExit) {
 					// TODO: to pause the psf lib, should prevent getting data from it
 					// so now I do a loop here until it's playing or exit
@@ -244,6 +247,11 @@ public class MineSexyPsfPlayer {
 						CircularBuffer.GetReadBuffer(MINE_AUDIO_BUFFER_PUT_GET_LEN);
 					Log.d(LOGTAG, "Write data to HW: "+(counter++) +" len: "+chunk.len);
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
+						PsfAudioTrack.play();
+						isAudioTrackOpened = true;
+						setPsfState(PsfPlayerState.STATE_PLAYING);
+					}
 				} catch (InterruptedException e) {
 					break;
 				}
@@ -277,10 +285,13 @@ public class MineSexyPsfPlayer {
     }
     
     private void notifyStateChange(int state) {
-    	setState(state);
+    	setPsfState(state);
     	mHandler.sendEmptyMessage(state);
     }
-    private void setState(int state) {
+    private void setPsfState(int state) {
     	PlayerState = state;
+    }
+    private int getPsfState() {
+    	return PlayerState;
     }
 }

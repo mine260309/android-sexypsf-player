@@ -142,8 +142,8 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         //mDeviceHasDpad = (getResources().getConfiguration().navigation ==
         //    Configuration.NAVIGATION_DPAD);
         
-//        mQueueButton = (ImageButton) findViewById(R.id.curplaylist);
-//        mQueueButton.setOnClickListener(mQueueListener);
+        mQueueButton = (ImageButton) findViewById(R.id.curplaylist);
+        mQueueButton.setOnClickListener(mQueueListener);
 //        mShuffleButton = ((ImageButton) findViewById(R.id.shuffle));
 //        mShuffleButton.setOnClickListener(mShuffleListener);
 //        mRepeatButton = ((ImageButton) findViewById(R.id.repeat));
@@ -191,6 +191,13 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
             	return;
             }
             mService.next();
+        }
+    };
+
+    private View.OnClickListener mQueueListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            startActivity(
+                    new Intent(v.getContext(), PsfFileBrowserActivity.class));
         }
     };
 
