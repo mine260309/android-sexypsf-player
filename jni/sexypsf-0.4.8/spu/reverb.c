@@ -108,7 +108,7 @@ static INLINE void MixREVERBLeftRight(s32 *oleft, s32 *oright, s32 inleft, s32 i
    downbuf[1][dbpos]=inright;
    dbpos=(dbpos+1)&7;
 
-   if(dbpos&0)                                          // we work on every second left value: downsample to 22 khz
+   if(dbpos&1)                                          // we work on every second left value: downsample to 22 khz
     {
      if(spuCtrl&0x80)                                  // -> reverb on? oki
       {

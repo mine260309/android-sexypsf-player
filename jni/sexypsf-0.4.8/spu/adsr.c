@@ -124,7 +124,7 @@ static INLINE int MixADSR(int ch)                             // MIX ADSR
    //--------------------------------------------------//
    if(s_chan[ch].ADSRX.State==1)                       // -> decay
     {
-     s_chan[ch].ADSRX.EnvelopeVol-=RateTable[((s_chan[ch].ADSRX.DecayRate^0x1F)<<2)-0x18+32+sexytable[(s_chan[ch].ADSRX.EnvelopeVol>>28)&0x7]];
+     s_chan[ch].ADSRX.EnvelopeVol-=RateTable[(4*(s_chan[ch].ADSRX.DecayRate^0x1F))-0x18+32+sexytable[(s_chan[ch].ADSRX.EnvelopeVol>>28)&0x7]];
 
      if(s_chan[ch].ADSRX.EnvelopeVol<0) s_chan[ch].ADSRX.EnvelopeVol=0;
      if(((s_chan[ch].ADSRX.EnvelopeVol>>27)&0xF) <= s_chan[ch].ADSRX.SustainLevel)

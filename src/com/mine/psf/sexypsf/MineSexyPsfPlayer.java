@@ -217,7 +217,7 @@ public class MineSexyPsfPlayer {
 			Log.d(LOGTAG, "PsfAudioGetThread exit!");
 		}
 	}
-	
+
 	// The thread that write data to hw
 	private class PsfAudioPutThread extends Thread {
 		public void run() {

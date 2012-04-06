@@ -40,9 +40,15 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 #include <unistd.h>
 
 #define DEBUG_LEVEL 1
+//#define DEBUG_DUMP_PCM
 
 #include "sexypsf_android.h"
 
+#ifdef DEBUG_DUMP_PCM
+  // dump the decoded audio data
+  static FILE* dump_file;
+  static FILE* dump_file2;
+#endif
 /*==================================================================================================
                                      GLOBAL FUNCTIONS
 ==================================================================================================*/
@@ -184,7 +190,6 @@ static int put_audio_buf(void* buf, int len)
     }
     free_size -= actual_put_len;
 
-    pthread_mutex_unlock(&audio_buf_mutex);
 
     if(put_index + actual_put_len < AUDIO_BLOCK_BUFFER_SIZE)
     {
@@ -200,6 +205,7 @@ static int put_audio_buf(void* buf, int len)
         memcpy(audio_buf_pointer, buf+put_len1, put_len2);
         put_index = put_len2;
     }
+    pthread_mutex_unlock(&audio_buf_mutex);
 
     debug_printf2("%s return with %d\n", __FUNCTION__, actual_put_len);
     return actual_put_len;
@@ -247,28 +253,28 @@ static int get_audio_buf(void* buf_ptr, int wanted_len)
     {
         actual_get_len = data_len_in_buffer;
     }
-    if(actual_get_len != 0)
+    if(actual_get_len != 0) {
         free_size += actual_get_len;
-
-    pthread_mutex_unlock(&audio_buf_mutex);
+    }
 
     if(actual_get_len!=0)
     {
-    if(get_index + actual_get_len < AUDIO_BLOCK_BUFFER_SIZE)
-    {
-        get_len1 = actual_get_len;
-        memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
-        get_index+=get_len1;
+		if(get_index + actual_get_len < AUDIO_BLOCK_BUFFER_SIZE)
+		{
+			get_len1 = actual_get_len;
+			memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
+			get_index+=get_len1;
+		}
+		else
+		{   /* split to two memcpy */
+			get_len1 = AUDIO_BLOCK_BUFFER_SIZE-get_index;
+			memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
+			get_len2 = actual_get_len - get_len1;
+			memcpy(buf_ptr+get_len1, audio_buf_pointer, get_len2);
+			get_index = get_len2;
+		}
     }
-    else
-    {   /* split to two memcpy */
-        get_len1 = AUDIO_BLOCK_BUFFER_SIZE-get_index;
-        memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
-        get_len2 = actual_get_len - get_len1;
-        memcpy(buf_ptr+get_len1, audio_buf_pointer, get_len2);
-        get_index = get_len2;
-    }
-    }
+    pthread_mutex_unlock(&audio_buf_mutex);
 
     return actual_get_len;
 }
@@ -372,6 +378,7 @@ void sexypsf_init()
 
     free_size = AUDIO_BLOCK_BUFFER_SIZE;
     global_command = CMD_NONE;
+    global_psf_status = PSF_STATUS_IDLE;
 }
 /*==================================================================================================
 
@@ -424,6 +431,23 @@ SIDE EFFECTS:
 ==================================================================================================*/
 BOOL psf_open(const char* file_name)
 {
+#ifdef DEBUG_DUMP_PCM
+    char* dump_file_name = (char*)malloc(strlen(file_name)+10);
+    if (dump_file_name != NULL) {
+    	strcpy(dump_file_name, file_name);
+    	strcat(dump_file_name, ".dmp2");
+        dump_file = fopen(dump_file_name, "wb");
+        strcat(dump_file_name, ".o");
+        dump_file2 = fopen(dump_file_name, "wb");
+        if (dump_file && dump_file2) {
+            sexypsf_dbg_printf("Opened dump file %s\n", dump_file_name);
+        }
+        else {
+            sexypsf_dbg_printf("Open dump file failure %s\n", dump_file_name);
+        }
+        free(dump_file_name);
+    }
+#endif
 	if (PSFInfo!= NULL) {
 		sexy_freepsfinfo(PSFInfo);
 		PSFInfo = NULL;
@@ -469,6 +493,17 @@ SIDE EFFECTS:
 ==================================================================================================*/
 void psf_stop()
 {
+#ifdef DEBUG_DUMP_PCM
+    if (dump_file) {
+        sexypsf_dbg_printf("Closing dump file\n");
+    	fclose(dump_file);
+    }
+    if (dump_file2) {
+    	fclose(dump_file2);
+    }
+    dump_file = NULL;
+    dump_file2 = NULL;
+#endif
     debug_printf("%s\n", __FUNCTION__);
     global_command = CMD_STOP;
     pthread_join(dethread,0);
@@ -610,6 +645,12 @@ void sexyd_update(unsigned char *Buffer, long count)
 
     debug_printf2("in %s: %d, buf: %08X, len: %d\n", __FUNCTION__, debug_index++, Buffer, count);
 
+#ifdef DEBUG_DUMP_PCM
+    if (dump_file2 && count != 0) {
+        sexypsf_dbg_printf("Dump pcm2.o data %d\n", count);
+		fwrite(Buffer, count, 1, dump_file2);
+    }
+#endif
     putindex = 0;
 
     while(putindex < count)
@@ -686,23 +727,32 @@ int psf_audio_putdata(uint8_t *stream, int len)
         if(global_command == CMD_STOP)
         {
             sexypsf_clear_audio_buffer();
-            memset(audio_static_data, 0, len);
+            //memset(audio_static_data, 0, len);
             break;
         }
         get_len = get_audio_buf(audio_static_data+audio_data_index, len-audio_data_index);
+#ifdef DEBUG_DUMP_PCM
+    if (dump_file && get_len != 0) {
+        sexypsf_dbg_printf("Dump pcm2 data %d\n", get_len);
+		fwrite(audio_static_data+audio_data_index, get_len, 1, dump_file);
+    }
+#endif
         audio_data_index+=get_len;
         if( (get_len == 0) &&
         	(global_psf_status == PSF_STATUS_STOPPED) )
         {
-        	memset(audio_static_data, 0, len);
-        	len = 0;
+        	//memset(audio_static_data, 0, len);
+        	//len = 0;
         	break;
         }
         usleep(1000);
     }
 
-    memcpy(stream, audio_static_data, len);
-    return len;
+    if (audio_data_index < len) {
+    	debug_printf("audio_data_index %d < len %d\n", audio_data_index, len);
+    }
+    memcpy(stream, audio_static_data, audio_data_index);
+    return audio_data_index;
 }
 
 /*==================================================================================================

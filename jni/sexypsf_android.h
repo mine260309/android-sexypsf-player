@@ -46,6 +46,7 @@ typedef enum{
 }PSF_CMD;
 
 typedef enum{
+	PSF_STATUS_IDLE,
 	PSF_STATUS_STOPPED,
 	PSF_STATUS_PLAYING,
 	PSF_STATUS_PAUSE

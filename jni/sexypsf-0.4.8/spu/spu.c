@@ -390,8 +390,7 @@ int SPUasync(u32 cycles)
            else fa=(dwNoiseVal>>2)&0x7fff;
 
            // mmm... depending on the noise freq we allow bigger/smaller changes to the previous val
-           //Mine DBG: comment the line with multiply or divide
-           //fa=s_chan[ch].iOldNoise+((fa-s_chan[ch].iOldNoise)/((0x001f-((spuCtrl&0x3f00)>>9))+1));
+           fa=s_chan[ch].iOldNoise+((fa-s_chan[ch].iOldNoise)/((0x001f-((spuCtrl&0x3f00)>>9))+1));
            if(fa>32767L)  fa=32767L;
            if(fa<-32767L) fa=-32767L;
            s_chan[ch].iOldNoise=fa;
@@ -421,8 +420,7 @@ int SPUasync(u32 cycles)
 	   // mmmm... if I do this, all is screwed
 	  //           s_chan[ch+1].iRawPitch=NP;
 
-           //NP=(44100L*NP)/(4096L);                     // calc frequency
-           NP=((44100L*NP)>>12);                     // calc frequency
+           NP=(44100L*NP)/(4096L);                     // calc frequency
 
            s_chan[ch+1].iActFreq=NP;
            s_chan[ch+1].iUsedFreq=NP;
@@ -466,15 +464,18 @@ int SPUasync(u32 cycles)
    if(decaybegin!=~0) // Is anyone REALLY going to be playing a song
 		      // for 13 hours?
    {
-    if(sampcount>=decayend) return(0);
-    dmul=256-(((sampcount-decaybegin)<<8)/(decayend-decaybegin));
+    if(sampcount>=decayend) 
+    {
+	    return(0);
+    }
+    dmul=256-(256*(sampcount-decaybegin)/(decayend-decaybegin));
     sl=(sl*dmul)>>8;
     sr=(sr*dmul)>>8;
    }
   }
   sampcount++;
-  //sl=(sl<<8)>>8;
-  //sr=(sr<<8)>>8;
+  sl=(sl*volmul)>>8;
+  sr=(sr*volmul)>>8;
 
   //{
   // static double asl=0;
@@ -616,8 +617,7 @@ int SPUopen(void)
  memset((void *)s_chan,0,(MAXCHAN+1)*sizeof(SPUCHAN));
  pSpuIrq=0;
 
- //iVolume=128; //85;
- iVolume=256; //85;
+ iVolume=128; //85;
  SetupStreams();                                       // prepare streaming
 
  bSPUIsOpen=1;
