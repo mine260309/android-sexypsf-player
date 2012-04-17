@@ -18,6 +18,11 @@
 
 package com.mine.psf.sexypsf;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -53,6 +58,9 @@ public class MineSexyPsfPlayer {
 	private PsfAudioGetThread GetThread;
 	private PsfAudioPutThread PutThread;
 
+	private FileOutputStream DumpedFileWriteToHW;
+	private FileOutputStream DumpedFileReadFromNative;
+
 	public MineSexyPsfPlayer() {
 		CircularBuffer = new MineAudioCircularBuffer(MINE_AUDIO_BUFFER_TOTAL_LEN);
 		setPsfState(PsfPlayerState.STATE_IDLE);
@@ -80,9 +88,18 @@ public class MineSexyPsfPlayer {
 		isAudioTrackOpened = false;
 
 		// 3) Prepare get/put threads
-		CircularBuffer.Discard();
+		CircularBuffer.reInit();
 		GetThread = new PsfAudioGetThread();
 		PutThread = new PsfAudioPutThread();
+		
+		// TODO: Dump is for debugging, comment below code before release 
+        try {
+			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
+        	DumpedFileReadFromNative = new FileOutputStream(new File("/sdcard/psf", "dumped_file_read_from_native"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			DumpedFileWriteToHW = DumpedFileReadFromNative = null;
+		}
 	}
 	
 	public void Play(int playCmd) {
@@ -128,6 +145,18 @@ public class MineSexyPsfPlayer {
 				PutThread.join();
 			}
 		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		// TODO: Dump is for debugging, comment below code before release 
+		try {
+			if (DumpedFileWriteToHW != null) {
+				DumpedFileWriteToHW.close();
+			}
+			if (DumpedFileReadFromNative != null) {
+				DumpedFileReadFromNative.close();
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
@@ -201,9 +230,10 @@ public class MineSexyPsfPlayer {
 	        		break;
 	        	}
 	        	MineAudioCircularBuffer.BufferChunk chunk = 
-	        		CircularBuffer.GetWriteBuffer(MINE_AUDIO_BUFFER_PUT_GET_LEN);
+	        		CircularBuffer.GetWriteBufferPrepare(MINE_AUDIO_BUFFER_PUT_GET_LEN);
 	        	
 	        	ret = MineSexyPsfLib.sexypsfputaudiodataindex(chunk.buffer, chunk.index, chunk.len);
+	        	CircularBuffer.GetWriteBufferDone(chunk.len);
 	        	if (ret != chunk.len){
 	        		// the playback is end, we shall let the play_thread exit
 	        		// and then let itself exit
@@ -212,6 +242,16 @@ public class MineSexyPsfPlayer {
 	        		// TODO: should I reaaly need to interrupt? PutThread.interrupt();
 	        		break;
 	        	}
+	        	
+				// TODO: Dump is for debugging, comment below code before release 
+				try {
+					if (DumpedFileReadFromNative != null) {
+						DumpedFileReadFromNative.write(chunk.buffer, chunk.index, chunk.len);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
 				Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
 	        }
 			Log.d(LOGTAG, "PsfAudioGetThread exit!");
@@ -244,9 +284,21 @@ public class MineSexyPsfPlayer {
 				}
 				try {
 					MineAudioCircularBuffer.BufferChunk chunk =
-						CircularBuffer.GetReadBuffer(MINE_AUDIO_BUFFER_PUT_GET_LEN);
-					Log.d(LOGTAG, "Write data to HW: "+(counter++) +" len: "+chunk.len);
+						CircularBuffer.GetReadBufferPrepare(MINE_AUDIO_BUFFER_PUT_GET_LEN);
+					
+					// TODO: Dump is for debugging, comment below code before release 
+					try {
+						if (DumpedFileWriteToHW != null) {
+							DumpedFileWriteToHW.write(chunk.buffer, chunk.index, chunk.len);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+					CircularBuffer.GetReadBufferDone(chunk.len);
+					Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
+
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
 						PsfAudioTrack.play();
 						isAudioTrackOpened = true;
@@ -264,9 +316,10 @@ public class MineSexyPsfPlayer {
 					Log.d(LOGTAG, "PsfAudioPutThread end of playback, data left: " + left);
 					if (left > 0) {
 						MineAudioCircularBuffer.BufferChunk chunk =
-							CircularBuffer.GetReadBuffer(left);
+							CircularBuffer.GetReadBufferPrepare(left);
 						Log.d(LOGTAG, "PsfAudioPutThread write left data");
 						PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+						CircularBuffer.GetReadBufferDone(chunk.len);
 					}
 				} catch (InterruptedException e1) {}
 				// TODO: should I call audiotrack's stop here?

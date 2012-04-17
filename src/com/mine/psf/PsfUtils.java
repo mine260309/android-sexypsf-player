@@ -111,7 +111,6 @@ public class PsfUtils {
     
     public static void play(Context context, String psfFile) {
     	if (sService != null) {
-	    	//sService.openFile(psfFile);
     		String[] playList = new String[1];
     		playList[0] = psfFile;
     		playAll(playList, 0);

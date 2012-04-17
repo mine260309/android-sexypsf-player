@@ -51,6 +51,7 @@ public class MineAudioCircularBuffer {
 		}
     	put.release(avail);
     	m_EndFlag = false;
+    	put_index = 0; get_index = 0;
     }
     
     public void init(int len) {
@@ -65,6 +66,14 @@ public class MineAudioCircularBuffer {
     	readBufferChunk = new BufferChunk();
     	writeBufferChunk.buffer = readBufferChunk.buffer = m_buffer;
     }
+
+    // Re-init the semaphore but re-use buffer
+    public void reInit() {
+    	Discard();
+    	put = new Semaphore(m_len);
+    	get = new Semaphore(0);
+    }
+
     // Discard the buffer and release all the Semaphore
     public void destroy() {
     	Discard();
@@ -79,7 +88,7 @@ public class MineAudioCircularBuffer {
     	m_EndFlag = true;
     }
  
-    public BufferChunk GetWriteBuffer(int requiredWriteLength) {
+    public BufferChunk GetWriteBufferPrepare(int requiredWriteLength) {
     	int avail = put.availablePermits();
     	int put_len = (avail>requiredWriteLength) ? (requiredWriteLength) : (avail);
     	if (put_len == 0) {
@@ -105,11 +114,14 @@ public class MineAudioCircularBuffer {
     		put_index = 0;
 //    		Log.d(LOGTAG, "Move put_index back to 0");
     	}
-    	get.release(put_len);
     	return writeBufferChunk;
     }
     
-    public BufferChunk GetReadBuffer(int requiredReadLength)
+    public void GetWriteBufferDone(int writeBufferSize) {
+    	get.release(writeBufferSize);
+    }
+    
+    public BufferChunk GetReadBufferPrepare(int requiredReadLength)
     		throws InterruptedException {
     	int get_len;
     	int avail = get.availablePermits();
@@ -140,8 +152,11 @@ public class MineAudioCircularBuffer {
     		get_index = 0;
 //    		Log.v(LOGTAG, "Move get_index back to 0");
     	}
-    	put.release(get_len);
     	return readBufferChunk;
+    }
+    
+    public void GetReadBufferDone(int readBufferSize) {
+    	put.release(readBufferSize);
     }
     
     public int GetBufferAvailable() {
