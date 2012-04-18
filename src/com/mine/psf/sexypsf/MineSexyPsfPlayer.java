@@ -75,6 +75,7 @@ public class MineSexyPsfPlayer {
 	        		MINE_AUDIO_BUFFER_PUT_GET_LEN,
 	        		AudioTrack.MODE_STREAM);
 		}
+		PsfAudioTrack.flush();
 
 		// 2) Open psf file
 		PsfFileName = psfFile;
@@ -239,7 +240,7 @@ public class MineSexyPsfPlayer {
 	        		// and then let itself exit
 	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", play to end");
 	        		CircularBuffer.setAudioBufferEnd();
-	        		// TODO: should I reaaly need to interrupt? PutThread.interrupt();
+	        		// TODO: should I really need to interrupt? PutThread.interrupt();
 	        		break;
 	        	}
 	        	

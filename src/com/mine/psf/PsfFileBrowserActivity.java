@@ -19,6 +19,7 @@
 package com.mine.psf;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 
@@ -72,25 +73,24 @@ public class PsfFileBrowserActivity extends Activity
         MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
         Log.e(LOGTAG, "Media Path is: " + MEDIA_PATH);
-    	File home = new File(MEDIA_PATH);
-    	File[] filteredFiles = home.listFiles( new Mp3Filter());
-    	playList = new ArrayList<String>();
-		if (filteredFiles!= null && filteredFiles.length > 0) {
-    		for (File file : home.listFiles( new Mp3Filter())) {
-    			MusicListAdapter.add(file.getPath());
-    			playList.add(file.getPath());
-    		}
-		}
+        
+        browseToDir(MEDIA_PATH);
 
 		MusicListView.setOnItemClickListener(new OnItemClickListener() {
 			    public void onItemClick(AdapterView<?> parent, View view,
 			        int position, long id) {
 			        // When clicked, start playing
 			    	String musicName = ((TextView) view).getText().toString();
-			    	Log.d(LOGTAG, "pick a music: " + musicName);
-
-			        PsfUtils.play(view.getContext(), musicName);
-			        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
+			    	File testDir = new File(musicName);
+			    	if (testDir.isDirectory()) {
+			    		Log.d(LOGTAG, "pick a directory: " + musicName);
+			    		browseToDir(musicName);
+			    	}
+			    	else {
+				    	Log.d(LOGTAG, "pick a music: " + musicName);
+				        PsfUtils.play(view.getContext(), musicName);
+				        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
+				    }
 			    }
 			  });
 		mToken = PsfUtils.bindToService(this, this);
@@ -193,10 +193,37 @@ public class PsfFileBrowserActivity extends Activity
             // ignore
         }
     }
-}
 
-class Mp3Filter implements FilenameFilter {
-    public boolean accept(File dir, String name) {
-        return (name.endsWith(".psf") || name.endsWith(".minipsf"));
+    private void browseToDir(String dir) {
+    	MusicListAdapter.clear();
+    	File curDir = new File(dir);
+    	File[] subDirs = curDir.listFiles(DirFilter);
+    	File[] filteredFiles = curDir.listFiles(PsfFilter);
+    	playList = new ArrayList<String>();
+		if (subDirs!= null && subDirs.length > 0) {
+    		for (File file : subDirs) {
+    			//Log.d(LOGTAG, "Add dir to list: " + file);
+    			MusicListAdapter.add(file.getPath());
+    		}
+		}
+		if (filteredFiles!= null && filteredFiles.length > 0) {
+    		for (File file : filteredFiles) {
+    			//Log.d(LOGTAG, "Add file to list: " + file);
+    			MusicListAdapter.add(file.getPath());
+    			playList.add(file.getPath());
+    		}
+		}
     }
+
+    FilenameFilter PsfFilter = new FilenameFilter() {
+        public boolean accept(File dir, String name) {
+            return (name.endsWith(".psf") || name.endsWith(".minipsf"));
+        }
+    };
+
+    FileFilter DirFilter = new FileFilter() {
+        public boolean accept(File file) {
+            return file.isDirectory();
+        }
+    };
 }
