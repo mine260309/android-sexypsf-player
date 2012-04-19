@@ -376,8 +376,9 @@ void sexypsf_init()
 		mutex_initialized = TRUE;
 	}
 
-    free_size = AUDIO_BLOCK_BUFFER_SIZE;
-    global_command = CMD_NONE;
+	sexypsf_clear_audio_buffer();
+	global_seektime = 0;
+	global_command = CMD_NONE;
     global_psf_status = PSF_STATUS_IDLE;
 }
 /*==================================================================================================
@@ -402,6 +403,7 @@ SIDE EFFECTS:
 static void sexypsf_clear_audio_buffer()
 {
 //  global_clear_buf_flag = 1;
+	audio_buf_pointer = playing_audio_buf;
     put_index=0, get_index=0, free_size = AUDIO_BLOCK_BUFFER_SIZE;
 }
 
