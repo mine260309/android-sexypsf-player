@@ -18,14 +18,16 @@
 
 package com.mine.psf.sexypsf;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+//import java.io.File;
+//import java.io.FileNotFoundException;
+//import java.io.FileOutputStream;
+//import java.io.IOException;
+import java.util.concurrent.Semaphore;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.AudioTrack.OnPlaybackPositionUpdateListener;
 import android.os.Handler;
 import android.util.Log;
 
@@ -58,12 +60,14 @@ public class MineSexyPsfPlayer {
 	private PsfAudioGetThread GetThread;
 	private PsfAudioPutThread PutThread;
 
-	private FileOutputStream DumpedFileWriteToHW;
-	private FileOutputStream DumpedFileReadFromNative;
+	// TODO: Dump is for debugging, comment below code before release
+//	private FileOutputStream DumpedFileWriteToHW;
+//	private FileOutputStream DumpedFileReadFromNative;
 
 	public MineSexyPsfPlayer() {
 		CircularBuffer = new MineAudioCircularBuffer(MINE_AUDIO_BUFFER_TOTAL_LEN);
 		setPsfState(PsfPlayerState.STATE_IDLE);
+		PsfPlaybackEndSemaphore = new Semaphore(1);
 	}
 
 	public void Open(String psfFile) {
@@ -75,6 +79,7 @@ public class MineSexyPsfPlayer {
 	        		MINE_AUDIO_BUFFER_PUT_GET_LEN,
 	        		AudioTrack.MODE_STREAM);
 		}
+		Log.d(LOGTAG, "call AudioTrack.flush()");
 		PsfAudioTrack.flush();
 
 		// 2) Open psf file
@@ -92,17 +97,20 @@ public class MineSexyPsfPlayer {
 		CircularBuffer.reInit();
 		GetThread = new PsfAudioGetThread();
 		PutThread = new PsfAudioPutThread();
-		
-		// TODO: Dump is for debugging, comment below code before release 
-        try {
-			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
-        	DumpedFileReadFromNative = new FileOutputStream(new File("/sdcard/psf", "dumped_file_read_from_native"));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			DumpedFileWriteToHW = DumpedFileReadFromNative = null;
+		if (PsfPlaybackEndSemaphore.availablePermits() != 0) {
+			PsfPlaybackEndSemaphore.acquireUninterruptibly();
+			Log.d(LOGTAG, "Acquire PsfPlaybackEndSemaphore in Open");
 		}
+		// TODO: Dump is for debugging, comment below code before release 
+//        try {
+//			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
+//        	DumpedFileReadFromNative = new FileOutputStream(new File("/sdcard/psf", "dumped_file_read_from_native"));
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//			DumpedFileWriteToHW = DumpedFileReadFromNative = null;
+//		}
 	}
-	
+
 	public void Play(int playCmd) {
 		if (playCmd == PSFPLAY) {
 			if (!isAudioTrackOpened) {
@@ -134,6 +142,7 @@ public class MineSexyPsfPlayer {
 	public void Stop() {
 		threadShallExit = true;
 		setPsfState(PsfPlayerState.STATE_IDLE);
+		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");
 		PsfAudioTrack.stop();
 		isAudioTrackOpened = false;
 		MineSexyPsfLib.sexypsfstop();
@@ -150,16 +159,16 @@ public class MineSexyPsfPlayer {
 		}
 		
 		// TODO: Dump is for debugging, comment below code before release 
-		try {
-			if (DumpedFileWriteToHW != null) {
-				DumpedFileWriteToHW.close();
-			}
-			if (DumpedFileReadFromNative != null) {
-				DumpedFileReadFromNative.close();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			if (DumpedFileWriteToHW != null) {
+//				DumpedFileWriteToHW.close();
+//			}
+//			if (DumpedFileReadFromNative != null) {
+//				DumpedFileReadFromNative.close();
+//			}
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	public boolean isPlaying() {
@@ -243,15 +252,15 @@ public class MineSexyPsfPlayer {
 	        		// TODO: should I really need to interrupt? PutThread.interrupt();
 	        		break;
 	        	}
-	        	
+
 				// TODO: Dump is for debugging, comment below code before release 
-				try {
-					if (DumpedFileReadFromNative != null) {
-						DumpedFileReadFromNative.write(chunk.buffer, chunk.index, chunk.len);
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+//				try {
+//					if (DumpedFileReadFromNative != null) {
+//						DumpedFileReadFromNative.write(chunk.buffer, chunk.index, chunk.len);
+//					}
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
 
 				Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
 	        }
@@ -288,19 +297,20 @@ public class MineSexyPsfPlayer {
 						CircularBuffer.GetReadBufferPrepare(MINE_AUDIO_BUFFER_PUT_GET_LEN);
 					
 					// TODO: Dump is for debugging, comment below code before release 
-					try {
-						if (DumpedFileWriteToHW != null) {
-							DumpedFileWriteToHW.write(chunk.buffer, chunk.index, chunk.len);
-						}
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+//					try {
+//						if (DumpedFileWriteToHW != null) {
+//							DumpedFileWriteToHW.write(chunk.buffer, chunk.index, chunk.len);
+//						}
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
 
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
 					CircularBuffer.GetReadBufferDone(chunk.len);
 					Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
 
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
+						Log.d(LOGTAG, "call AudioTrack.play()");
 						PsfAudioTrack.play();
 						isAudioTrackOpened = true;
 						setPsfState(PsfPlayerState.STATE_PLAYING);
@@ -318,13 +328,30 @@ public class MineSexyPsfPlayer {
 					if (left > 0) {
 						MineAudioCircularBuffer.BufferChunk chunk =
 							CircularBuffer.GetReadBufferPrepare(left);
-						Log.d(LOGTAG, "PsfAudioPutThread write left data");
+						Log.d(LOGTAG, "PsfAudioPutThread write left data: " + chunk.len);
 						PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
 						CircularBuffer.GetReadBufferDone(chunk.len);
+
+						// set end marker
+						PsfAudioTrack.setNotificationMarkerPosition(chunk.len/2);
+						PsfAudioTrack.setPlaybackPositionUpdateListener(new OnPlaybackPositionUpdateListener() {
+				            @Override
+				            public void onPeriodicNotification(AudioTrack track) {
+				                // nothing to do
+				            }
+				            @Override
+				            public void onMarkerReached(AudioTrack track) {
+				                Log.d(LOGTAG, "Audio track end of file reached...");
+				                notifyPsfEnd();
+				            }
+				        });
+						waitPsfEnd();
 					}
 				} catch (InterruptedException e1) {}
 				// TODO: should I call audiotrack's stop here?
+				Log.d(LOGTAG, "call AudioTrack.stop()");
 				PsfAudioTrack.stop();
+				PsfAudioTrack.setStereoVolume(0, 0);
 				notifyStateChange(PsfPlayerState.STATE_STOPPED);
 			}
 			else {
@@ -332,6 +359,18 @@ public class MineSexyPsfPlayer {
 			}
 			Log.d(LOGTAG, "PsfAudioPutThread exit!");
 		}
+	}
+
+	// The semaphore of psf playback's end
+	Semaphore PsfPlaybackEndSemaphore;
+	private void notifyPsfEnd() {
+		Log.d(LOGTAG, "Release PsfPlaybackEndSemaphore");
+		PsfPlaybackEndSemaphore.release();
+	}
+
+	private void waitPsfEnd() throws InterruptedException {
+		Log.d(LOGTAG, "wait PsfPlaybackEndSemaphore");
+		PsfPlaybackEndSemaphore.acquire();
 	}
 
     public void setHandler(Handler handler) {

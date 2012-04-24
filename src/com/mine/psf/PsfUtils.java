@@ -116,13 +116,13 @@ public class PsfUtils {
     		playAll(playList, 0);
     	}
     }
-    
+
     public static void stop(Context context) {
     	if (sService != null) {
     		sService.stop();
     	}
     }
-    
+
     public static void playAll(String[] playList, int pos) {
     	if (sService != null) {
     		sService.setPlaylist(playList, false);
