@@ -75,7 +75,8 @@ int                 global_seektime = 0;        //the global seek time
 
 static int mutex_initialized = FALSE;
 static pthread_mutex_t audio_buf_mutex;
-static pthread_t dethread;                      //the play back thread
+static pthread_t play_thread;                      //the play back thread
+static int thread_running;
 
 typedef enum
 {
@@ -380,6 +381,7 @@ void sexypsf_init()
 	global_seektime = 0;
 	global_command = CMD_NONE;
     global_psf_status = PSF_STATUS_IDLE;
+    thread_running = 0;
 }
 /*==================================================================================================
 
@@ -471,7 +473,12 @@ BOOL psf_open(const char* file_name)
 void psf_play()
 {
     debug_printf("%s: playing file %s...\n", __FUNCTION__, stored_filename);
-    pthread_create(&dethread,0,playloop,0);
+    if (pthread_create(&play_thread,0,playloop,0) == 0 ){
+    	thread_running = 1;
+    }
+    else {
+    	thread_running = 0;
+    }
 }
 
 /*==================================================================================================
@@ -508,7 +515,10 @@ void psf_stop()
 #endif
     debug_printf("%s\n", __FUNCTION__);
     global_command = CMD_STOP;
-    pthread_join(dethread,0);
+    if (thread_running) {
+    	pthread_join(play_thread,0);
+    	thread_running = 0;
+    }
 }
 
 /*==================================================================================================
