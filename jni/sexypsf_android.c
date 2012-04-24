@@ -77,6 +77,7 @@ static int mutex_initialized = FALSE;
 static pthread_mutex_t audio_buf_mutex;
 static pthread_t play_thread;                      //the play back thread
 static int thread_running;
+static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
 
 typedef enum
 {
@@ -516,6 +517,9 @@ void psf_stop()
     debug_printf("%s\n", __FUNCTION__);
     global_command = CMD_STOP;
     if (thread_running) {
+    	// consume audio data so that the thread gets a chance to exit
+    	get_audio_buf(audio_static_data, AUDIO_BLOCK_BUFFER_SIZE - free_size);
+    	debug_printf("joining player thread...");
     	pthread_join(play_thread,0);
     	thread_running = 0;
     }
@@ -724,7 +728,6 @@ int psf_audio_putdata(uint8_t *stream, int len)
 #ifdef USE_DEBUG_PRINTF
     static int debug_index = 0;
 #endif
-    static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
     int get_len, audio_data_index;
 
     debug_printf2("in psf_audio_callback: %d\n", debug_index++);
