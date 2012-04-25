@@ -40,6 +40,7 @@ public class MineSexyPsfPlayer {
 		public static final int STATE_STOPPED = 3;
 		public static final int STATE_PENDING_PLAY = 4;
 		public static final int STATE_OPENED = 5;
+		public static final int STATE_MSG_MAX = 10;
 	}
 
 	public static final int PSFPLAY=0;
@@ -71,7 +72,9 @@ public class MineSexyPsfPlayer {
 //		PsfPlaybackEndSemaphore = new Semaphore(1);
 	}
 
-	public void Open(String psfFile) {
+	public boolean Open(String psfFile) {
+		boolean ret;
+		setPsfState(PsfPlayerState.STATE_IDLE);
 		// 1) open audio device;
 		if (PsfAudioTrack == null) {
 			PsfAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100,
@@ -82,35 +85,43 @@ public class MineSexyPsfPlayer {
 		}
 		Log.d(LOGTAG, "call AudioTrack.flush()");
 		PsfAudioTrack.flush();
+		isAudioTrackOpened = false;
 
 		// 2) Open psf file
 		PsfFileName = psfFile;
-		MineSexyPsfLib.sexypsfopen(psfFile);
-		PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
-		//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
-		//		", duration: " + PsfFileInfo.duration);
-		
-		isAudioTrackOpened = false;
-		setPsfState(PsfPlayerState.STATE_OPENED);
-		// 3) Prepare get/put threads
-		CircularBuffer.reInit();
-		GetThread = new PsfAudioGetThread();
-		PutThread = new PsfAudioPutThread();
-//		if (PsfPlaybackEndSemaphore.availablePermits() != 0) {
-//			PsfPlaybackEndSemaphore.acquireUninterruptibly();
-//			Log.d(LOGTAG, "Acquire PsfPlaybackEndSemaphore in Open");
-//		}
-		// TODO: Dump is for debugging, comment below code before release 
-//        try {
-//			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
-//        	DumpedFileReadFromNative = new FileOutputStream(new File("/sdcard/psf", "dumped_file_read_from_native"));
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//			DumpedFileWriteToHW = DumpedFileReadFromNative = null;
-//		}
+		ret = MineSexyPsfLib.sexypsfopen(psfFile);
+		if (ret) {
+			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
+			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
+			//		", duration: " + PsfFileInfo.duration);
+			
+			setPsfState(PsfPlayerState.STATE_OPENED);
+			// 3) Prepare get/put threads
+			CircularBuffer.reInit();
+			GetThread = new PsfAudioGetThread();
+			PutThread = new PsfAudioPutThread();
+	//		if (PsfPlaybackEndSemaphore.availablePermits() != 0) {
+	//			PsfPlaybackEndSemaphore.acquireUninterruptibly();
+	//			Log.d(LOGTAG, "Acquire PsfPlaybackEndSemaphore in Open");
+	//		}
+			// TODO: Dump is for debugging, comment below code before release 
+	//        try {
+	//			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
+	//        	DumpedFileReadFromNative = new FileOutputStream(new File("/sdcard/psf", "dumped_file_read_from_native"));
+	//		} catch (FileNotFoundException e) {
+	//			e.printStackTrace();
+	//			DumpedFileWriteToHW = DumpedFileReadFromNative = null;
+	//		}
+		}
+		return ret;
 	}
 
 	public void Play(int playCmd) {
+		if (getPsfState() == PsfPlayerState.STATE_IDLE) {
+			// TODO: maybe I can add more check of the state
+			// Currently only verify it's not in IDLE state
+			return;
+		}
 		if (playCmd == PSFPLAY) {
 			if (!isAudioTrackOpened) {
 				Log.d(LOGTAG, "Will open AudioTrack and play");
@@ -141,6 +152,9 @@ public class MineSexyPsfPlayer {
 	}
 
 	public void Stop() {
+		if (getPsfState() == PsfPlayerState.STATE_IDLE) {
+			return;
+		}
 		threadShallExit = true;
 		setPsfState(PsfPlayerState.STATE_IDLE);
 		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");

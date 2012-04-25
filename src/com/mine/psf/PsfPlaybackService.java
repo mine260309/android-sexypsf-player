@@ -70,6 +70,9 @@ public class PsfPlaybackService extends Service
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
 
+	public static final int MSG_JUMP_NEXT = STATE_MSG_MAX + 1;
+	public static final int MSG_JUMP_PREV = STATE_MSG_MAX + 2;
+
     // interval after which we stop the service when idle
     private static final int IDLE_DELAY = 60000;
 
@@ -222,6 +225,14 @@ public class PsfPlaybackService extends Service
                 //case RELEASE_WAKELOCK:
                 //    mWakeLock.release();
                 //    break;
+                case MSG_JUMP_NEXT:
+                	Log.v(LOGTAG, "get NEXT message");
+                	next();
+                	break;
+                case MSG_JUMP_PREV:
+                	Log.v(LOGTAG, "get PREV message");
+                	prev();
+                	break;
                 default:
                     break;
             }
@@ -254,7 +265,7 @@ public class PsfPlaybackService extends Service
 		}
 	}
 
-	private void openFile(String path) {
+	private boolean openFile(String path) {
 		synchronized(this) {
 			if (PsfPlayer == null) {
 				PsfPlayer = new MineSexyPsfPlayer();
@@ -263,9 +274,16 @@ public class PsfPlaybackService extends Service
 			if (PsfPlayer.isActive()) {
 				PsfPlayer.Stop();
 			}
-			Log.d(LOGTAG, "openFile: " + path);
-			PsfPlayer.Open(path);
-            notifyChange(META_CHANGED);
+			boolean ret;
+			ret = PsfPlayer.Open(path);
+			if (ret) {
+				notifyChange(META_CHANGED);
+				Log.d(LOGTAG, "openFile: " + path + " successfully");
+			}
+			else {
+				Log.d(LOGTAG, "openFile: " + path + " failed!");
+			}
+            return ret;
 		}
 	}
 
@@ -313,7 +331,12 @@ public class PsfPlaybackService extends Service
 		else {
 			playPos = pos;
 		}
-		openFile(playList[playPos]);
+		boolean ret;
+		ret = openFile(playList[playPos]);
+		if (!ret) {
+			removeFromList(pos);
+			curPos--;
+		}
 	}
 
 	// This function opens the file in playlist and play it
@@ -333,9 +356,18 @@ public class PsfPlaybackService extends Service
 				Log.e(LOGTAG, "No Next Track!");
 				return;
 			}
-			openFile(playList[pos]);
-			play();
-			saveCurPos();
+			boolean ret;
+			ret = openFile(playList[pos]);
+			if (ret) {
+				play();
+				saveCurPos();
+			}
+			else {
+				// Remove the file from list and next
+				removeFromList(pos);
+				curPos--;
+				mMediaplayerHandler.sendEmptyMessage(MSG_JUMP_NEXT);
+			}
 		}
 	}
 
@@ -347,9 +379,17 @@ public class PsfPlaybackService extends Service
 				Log.e(LOGTAG, "No Prev Track!");
 				return;
 			}
-			openFile(playList[pos]);
-			play();
-			saveCurPos();
+			boolean ret;
+			ret = openFile(playList[pos]);
+			if (ret) {
+				play();
+				saveCurPos();
+			} else {
+				// Remove the file from list and go prev
+				removeFromList(pos);
+				curPos++;
+				mMediaplayerHandler.sendEmptyMessage(MSG_JUMP_PREV);
+			}
 		}
 	}
 
@@ -425,6 +465,55 @@ public class PsfPlaybackService extends Service
         i.putExtra("album",getAlbumName());
         i.putExtra("track", getTrackName());
         sendBroadcast(i);
+    }
+
+    private void removeFromList(int pos) {
+    	// Remove the file from the list at pos
+    	// This includes removing the file from playList
+    	// and update the shufflelist, curPos
+    	// It's a slow process since it's re-constructing the array
+    	if (pos < 0 || pos >= playList.length) {
+    		return;
+    	}
+    	Log.d(LOGTAG, "remove file " + playList[pos] + " from list, pos: " + pos);
+    	Log.d(LOGTAG, "Before removing:");
+    	dumpPlayList();
+
+    	String[] newList = new String[playList.length-1];
+    	int[] newShuffleList = new int[shuffleList.length-1];
+    	int shuffleIndex = 0;
+    	for (int i = 0; i < playList.length; ++i) {
+    		// copy to new play list
+    		if (i<pos) {
+    			newList[i] = playList[i];
+    		} else if (i > pos) {
+    			newList[i-1] = playList[i];
+    		}
+    		
+    		// copy to new shuffle list
+    		if (shuffleList[i] == pos) {
+    			continue;
+    		}
+    		newShuffleList[shuffleIndex] = shuffleList[i];
+    		if (newShuffleList[shuffleIndex] > pos) {
+    			newShuffleList[shuffleIndex]--;
+    		}
+   			shuffleIndex++;
+    	}
+    	playList = newList;
+    	shuffleList = newShuffleList;
+    	Log.d(LOGTAG, "After removing:");
+    	dumpPlayList();
+    }
+    
+    private void dumpPlayList() {
+    	Log.d(LOGTAG, "Dump Playlist...");
+    	StringBuffer sb = new StringBuffer();
+    	for (int i = 0; i < playList.length; ++i) {
+    		Log.d(LOGTAG, playList[i]);
+    		sb.append(shuffleList[i] + " ");
+    	}
+    	Log.d(LOGTAG, "Shuffle List: " + sb.toString());
     }
 
 	/**
