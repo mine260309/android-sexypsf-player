@@ -22,7 +22,7 @@ package com.mine.psf.sexypsf;
 //import java.io.FileNotFoundException;
 //import java.io.FileOutputStream;
 //import java.io.IOException;
-import java.util.concurrent.Semaphore;
+//import java.util.concurrent.Semaphore;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -39,6 +39,7 @@ public class MineSexyPsfPlayer {
 		public static final int STATE_PLAYING = 2;
 		public static final int STATE_STOPPED = 3;
 		public static final int STATE_PENDING_PLAY = 4;
+		public static final int STATE_OPENED = 5;
 	}
 
 	public static final int PSFPLAY=0;
@@ -67,7 +68,7 @@ public class MineSexyPsfPlayer {
 	public MineSexyPsfPlayer() {
 		CircularBuffer = new MineAudioCircularBuffer(MINE_AUDIO_BUFFER_TOTAL_LEN);
 		setPsfState(PsfPlayerState.STATE_IDLE);
-		PsfPlaybackEndSemaphore = new Semaphore(1);
+//		PsfPlaybackEndSemaphore = new Semaphore(1);
 	}
 
 	public void Open(String psfFile) {
@@ -88,19 +89,17 @@ public class MineSexyPsfPlayer {
 		PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
 		//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
 		//		", duration: " + PsfFileInfo.duration);
-		// Let sexypsf play so we can have audio buffer now
-		MineSexyPsfLib.sexypsfplay();
-		setPsfState(PsfPlayerState.STATE_PENDING_PLAY);
+		
 		isAudioTrackOpened = false;
-
+		setPsfState(PsfPlayerState.STATE_OPENED);
 		// 3) Prepare get/put threads
 		CircularBuffer.reInit();
 		GetThread = new PsfAudioGetThread();
 		PutThread = new PsfAudioPutThread();
-		if (PsfPlaybackEndSemaphore.availablePermits() != 0) {
-			PsfPlaybackEndSemaphore.acquireUninterruptibly();
-			Log.d(LOGTAG, "Acquire PsfPlaybackEndSemaphore in Open");
-		}
+//		if (PsfPlaybackEndSemaphore.availablePermits() != 0) {
+//			PsfPlaybackEndSemaphore.acquireUninterruptibly();
+//			Log.d(LOGTAG, "Acquire PsfPlaybackEndSemaphore in Open");
+//		}
 		// TODO: Dump is for debugging, comment below code before release 
 //        try {
 //			DumpedFileWriteToHW = new FileOutputStream(new File("/sdcard/psf", "dumped_file_write_to_hw"));
@@ -115,6 +114,8 @@ public class MineSexyPsfPlayer {
 		if (playCmd == PSFPLAY) {
 			if (!isAudioTrackOpened) {
 				Log.d(LOGTAG, "Will open AudioTrack and play");
+				MineSexyPsfLib.sexypsfplay();
+				setPsfState(PsfPlayerState.STATE_PENDING_PLAY);
 				// Start playing after opened
 				threadShallExit = false;
 				PsfAudioTrack.setStereoVolume(1, 1);
@@ -148,10 +149,10 @@ public class MineSexyPsfPlayer {
 		MineSexyPsfLib.sexypsfstop();
 		try {
 			CircularBuffer.destroy();
-			if (GetThread != null) {
+			if (GetThread != null && GetThread.isAlive()) {
 				GetThread.join();
 			}
-			if (PutThread != null) {
+			if (PutThread != null && PutThread.isAlive()) {
 				PutThread.join();
 			}
 		} catch (InterruptedException e) {
@@ -342,10 +343,10 @@ public class MineSexyPsfPlayer {
 				            @Override
 				            public void onMarkerReached(AudioTrack track) {
 				                Log.d(LOGTAG, "Audio track end of file reached...");
-				                notifyPsfEnd();
+//				                notifyPsfEnd();
 				            }
 				        });
-						waitPsfEnd();
+//						waitPsfEnd();
 					}
 				} catch (InterruptedException e1) {}
 				// TODO: should I call audiotrack's stop here?
@@ -362,16 +363,16 @@ public class MineSexyPsfPlayer {
 	}
 
 	// The semaphore of psf playback's end
-	Semaphore PsfPlaybackEndSemaphore;
-	private void notifyPsfEnd() {
-		Log.d(LOGTAG, "Release PsfPlaybackEndSemaphore");
-		PsfPlaybackEndSemaphore.release();
-	}
-
-	private void waitPsfEnd() throws InterruptedException {
-		Log.d(LOGTAG, "wait PsfPlaybackEndSemaphore");
-		PsfPlaybackEndSemaphore.acquire();
-	}
+//	Semaphore PsfPlaybackEndSemaphore;
+//	private void notifyPsfEnd() {
+//		Log.d(LOGTAG, "Release PsfPlaybackEndSemaphore");
+//		PsfPlaybackEndSemaphore.release();
+//	}
+//
+//	private void waitPsfEnd() throws InterruptedException {
+//		Log.d(LOGTAG, "wait PsfPlaybackEndSemaphore");
+//		PsfPlaybackEndSemaphore.acquire();
+//	}
 
     public void setHandler(Handler handler) {
         mHandler = handler;

@@ -18,6 +18,11 @@
 
 package com.mine.psf;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -28,12 +33,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 /**
@@ -72,6 +80,10 @@ public class PsfPlaybackService extends Service
 	private int curPos;
     private boolean mServiceInUse = false;
 
+    private SharedPreferences mPreferences;
+	// Save playlist and shufflelist
+	private static final String SavedListFileName = "savedList";
+	
     @Override
     public void onCreate() {
     	super.onCreate();
@@ -80,6 +92,10 @@ public class PsfPlaybackService extends Service
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, this.getClass().getName());
         mWakeLock.setReferenceCounted(false);
         Log.d(LOGTAG, "onCreate, Acquire Wake Lock");
+
+        mPreferences = PreferenceManager
+				.getDefaultSharedPreferences(this);
+        reloadQueue();
 
         // If the service was idle, but got killed before it stopped itself, the
         // system will relaunch it. Make sure it gets stopped again in that case.
@@ -129,7 +145,7 @@ public class PsfPlaybackService extends Service
     @Override
     public boolean onUnbind(Intent intent) {
         mServiceInUse = false;
-    	// TODO: save status (queue, player, etc
+        saveQueue();
     	if (PsfPlayer!= null) {
     		if (PsfPlayer.isActive() /* || mPausedByTransientLossOfFocus*/) {
     			// something is currently playing, or will be playing once 
@@ -223,7 +239,7 @@ public class PsfPlaybackService extends Service
             // save the queue again, because it might have changed
             // since the user exited the music app (because of
             // party-shuffle or because the play-position changed)
-            // saveQueue(true);
+            saveQueue();
             stopSelf(mServiceStartId);
         }
     };
@@ -234,6 +250,7 @@ public class PsfPlaybackService extends Service
 			playList = list;
 			playShuffle = shuffle;
 			generateShuffleList();
+            saveQueue();
 		}
 	}
 
@@ -282,24 +299,29 @@ public class PsfPlaybackService extends Service
 		}
 	}
 	
+	private void open(int pos) {
+		if (pos < 0 || pos >= playList.length) {
+			Log.e(LOGTAG, "open pos out of range, pos: " + pos
+					+ ", len: " + playList.length);
+			return;
+		}
+		curPos = pos;
+		int playPos;
+		if (playShuffle) {
+			playPos = shuffleList[pos];
+		}
+		else {
+			playPos = pos;
+		}
+		openFile(playList[playPos]);
+	}
+
 	// This function opens the file in playlist and play it
 	public void play(int pos) {
 		synchronized(this) {
-			if (pos < 0 || pos >= playList.length) {
-				Log.e(LOGTAG, "play pos out of range, pos: " + pos
-						+ ", len: " + playList.length);
-				return;
-			}
-			curPos = pos;
-			int playPos;
-			if (playShuffle) {
-				playPos = shuffleList[pos];
-			}
-			else {
-				playPos = pos;
-			}
-			openFile(playList[playPos]);
+			open(pos);
 			play();
+			saveCurPos();
 		}
 	}
 
@@ -313,6 +335,7 @@ public class PsfPlaybackService extends Service
 			}
 			openFile(playList[pos]);
 			play();
+			saveCurPos();
 		}
 	}
 
@@ -326,12 +349,14 @@ public class PsfPlaybackService extends Service
 			}
 			openFile(playList[pos]);
 			play();
+			saveCurPos();
 		}
 	}
 
 	public void setShuffle(boolean shuffle) {
 		synchronized(this) {
 			playShuffle = shuffle;
+			saveShuffleState();
 		}
 	}
 
@@ -415,10 +440,12 @@ public class PsfPlaybackService extends Service
                     String action = intent.getAction();
                     if (action.equals(Intent.ACTION_MEDIA_EJECT)) {
                         Log.d(LOGTAG, "SD Card Ejected, stop...");
+                        saveQueue();
                         stop();
                         notifyChange(META_CHANGED);
                     } else if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
-                    	//TODO: ???
+                        reloadQueue();
+                        notifyChange(META_CHANGED);
                         Log.d(LOGTAG, "SD Card Mounted...");
                     }
                 }
@@ -430,7 +457,7 @@ public class PsfPlaybackService extends Service
             registerReceiver(mUnmountReceiver, iFilter);
         }
     }
-	
+
     private void generateShuffleList() {
     	shuffleList = new int[playList.length];
     	if (playShuffle) {
@@ -508,5 +535,74 @@ public class PsfPlaybackService extends Service
         mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
         stopForeground(true);
     }
-	
+
+    private void saveQueue() {
+    	if (playList == null || shuffleList == null) {
+    		return;
+    	}
+    	Log.d(LOGTAG, "saveQueue");
+    	// Save playlist and shufflelist
+    	try {
+        	FileOutputStream fos = openFileOutput(SavedListFileName, Context.MODE_PRIVATE);
+			ObjectOutputStream oos = new ObjectOutputStream (fos);
+			oos.writeObject(playList);
+			oos.writeObject(shuffleList);
+			oos.close();
+	    	fos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+
+    	// Save other parameters
+        Editor ed = mPreferences.edit();
+        ed.putInt("curpos", curPos);
+        ed.putBoolean("shufflemode", playShuffle);
+        ed.commit();
+    }
+
+    private void reloadQueue() {
+    	// Get playlist and shufflelist
+    	Log.d(LOGTAG, "reloadQueue");
+    	try {
+    		FileInputStream fis = openFileInput(SavedListFileName);
+    		ObjectInputStream ois = new ObjectInputStream (fis);
+    		playList = (String[]) ois.readObject();
+    		shuffleList = (int[]) ois.readObject();
+    	} catch (Exception e) {
+    		e.printStackTrace();
+        	playList = null;
+        	shuffleList = null;
+        	curPos = 0;
+        	playShuffle = false;
+        	return;
+    	}
+
+    	// Get other parameters
+        playShuffle = mPreferences.getBoolean("shufflemode", false);
+
+    	if (playList != null) {
+	        int pos = mPreferences.getInt("curpos", 0);
+	        if (pos < 0 || pos >= playList.length) {
+	        	// The saved playlist is bogus, discard it
+	        	playList = null;
+	        	shuffleList = null;
+	        	return;
+	        }
+	        curPos = pos;
+	        open(curPos);
+    	}
+    }
+    
+    private void saveCurPos() {
+        Editor ed = mPreferences.edit();
+        ed.putInt("curpos", curPos);
+        ed.commit();
+    }
+    
+    private void saveShuffleState() {
+        Editor ed = mPreferences.edit();
+        ed.putBoolean("shufflemode", playShuffle);
+        ed.commit();
+    }
 }

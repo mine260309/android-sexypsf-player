@@ -72,7 +72,7 @@ public class PsfFileBrowserActivity extends Activity
         MusicListView = (ListView) findViewById(R.id.psffilelist);
         MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
-        Log.e(LOGTAG, "Media Path is: " + MEDIA_PATH);
+        Log.d(LOGTAG, "Media Path is: " + MEDIA_PATH);
         
         browseToDir(MEDIA_PATH);
 
