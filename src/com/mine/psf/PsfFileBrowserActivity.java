@@ -21,6 +21,7 @@ package com.mine.psf;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,7 +54,9 @@ public class PsfFileBrowserActivity extends Activity
 {
 	private static final String LOGTAG = "PsfFileBrowserActivity";
 	private static final String MEDIA_PATH = new String(
-			Environment.getExternalStorageDirectory()+"/psf/");
+			Environment.getExternalStorageDirectory()+"/psf");
+	private static final String DIR_PREFIX = "<dir> ";
+
 	private static final int ID_EXIT = 1;
 	private static final int ID_PLAY_ALL = 2;
 	private static final int ID_SHUFFLE_ALL = 3;
@@ -62,6 +65,8 @@ public class PsfFileBrowserActivity extends Activity
 	private ArrayAdapter<String> MusicListAdapter;
     private ServiceToken mToken;
     private ArrayList<String> playList;
+    private TextView CurDirView;
+    private String curDirName;
 
     /** Called when the activity is first created. */
     @Override
@@ -74,6 +79,7 @@ public class PsfFileBrowserActivity extends Activity
         MusicListView = (ListView) findViewById(R.id.psffilelist);
         MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
+        CurDirView = (TextView) findViewById(R.id.directory_text);
         Log.d(LOGTAG, "Media Path is: " + MEDIA_PATH);
         
         browseToDir(MEDIA_PATH);
@@ -82,7 +88,8 @@ public class PsfFileBrowserActivity extends Activity
 			    public void onItemClick(AdapterView<?> parent, View view,
 			        int position, long id) {
 			        // When clicked, start playing
-			    	String musicName = ((TextView) view).getText().toString();
+			    	String fileName = TryRemovingPrefix( ((TextView) view).getText().toString());
+			    	String musicName = GetFullPath(curDirName, fileName);
 			    	File testDir = new File(musicName);
 			    	if (testDir.isDirectory()) {
 			    		Log.d(LOGTAG, "pick a directory: " + musicName);
@@ -197,42 +204,78 @@ public class PsfFileBrowserActivity extends Activity
     }
 
     private void browseToDir(String dir) {
-    	MusicListAdapter.clear();
+    	// Make Canonical path
     	File curDir = new File(dir);
+
+    	try {
+    		curDirName = curDir.getCanonicalPath();
+		} catch (IOException e) {
+			Log.e(LOGTAG, "Unable to get canonical path!");
+			return;
+		}
+
+    	CurDirView.setText(curDirName);
+    	boolean isOnPsfRoot = (curDirName.equals(MEDIA_PATH));
+
+    	MusicListAdapter.clear();
+    	if (!isOnPsfRoot) {
+    		// Add ".." on the first item if it's not on the root
+    		MusicListAdapter.add(GetDirNameWithPrefix(".."));
+    	}
+
     	File[] subDirs = curDir.listFiles(DirFilter);
     	String[] filteredFiles = curDir.list(PsfFilter);
-    	ArrayList<String> dirFiles = new ArrayList<String>(subDirs.length);
     	
-    	playList = new ArrayList<String>(filteredFiles.length);
 		if (subDirs!= null && subDirs.length > 0) {
+	    	ArrayList<String> dirFiles = new ArrayList<String>(subDirs.length);
+
     		for (File file : subDirs) {
-    			//Log.d(LOGTAG, "Add dir to list: " + file);
-    			dirFiles.add(file.getPath());
+    			dirFiles.add(file.getName());
     		}
-    		
+    		// Sort dirs and add into list
+    		Collections.sort(dirFiles, String.CASE_INSENSITIVE_ORDER);
+    		for (String dirs : dirFiles) {
+    			MusicListAdapter.add(GetDirNameWithPrefix(dirs));
+    		}
 		}
 
-		// Sort dirFiles and psf files
-		Collections.sort(dirFiles, String.CASE_INSENSITIVE_ORDER);
-		Arrays.sort(filteredFiles, String.CASE_INSENSITIVE_ORDER);
-		
-		// Add dirs into list
-		for (String dirs : dirFiles) {
-			MusicListAdapter.add(dirs);
+		if (filteredFiles != null && filteredFiles.length > 0) {
+	    	playList = new ArrayList<String>(filteredFiles.length);
+			// Sort psf files and add into list
+			Arrays.sort(filteredFiles, String.CASE_INSENSITIVE_ORDER);
+	    	for (String file : filteredFiles) {
+	    		MusicListAdapter.add(file);
+	    		playList.add(GetFullPath(curDirName, file));
+	    	}
 		}
+		else {
+			// No files, create an empty play list
+			playList = new ArrayList<String>();
+		}
+    }
 
-		// Add psf files into list
-    	for (String file : filteredFiles) {
-    		//Log.d(LOGTAG, "Add file to list: " + file);
-    		String fullPath;
-    		if (dir.endsWith("/")) {
-    			fullPath = dir+file;
-    		}
-    		else {
-    			fullPath = dir+'/'+file;
-    		}
-    		MusicListAdapter.add(fullPath);
-    		playList.add(fullPath);
+    private String GetFullPath(String dir, String file) {
+    	StringBuffer sb = new StringBuffer();
+		sb.append(dir);
+    	if (dir.endsWith("/")) {
+    		sb.append(file);
+    	}
+    	else {
+    		sb.append('/');
+    		sb.append(file);
+    	}
+    	return sb.toString();
+    }
+    
+    private String GetDirNameWithPrefix(String dir) {
+    	return DIR_PREFIX + dir;
+    }
+    private String TryRemovingPrefix(String name) {
+    	if (name.startsWith(DIR_PREFIX)) {
+    		return name.substring(DIR_PREFIX.length());
+    	}
+    	else {
+    		return name;
     	}
     }
 
