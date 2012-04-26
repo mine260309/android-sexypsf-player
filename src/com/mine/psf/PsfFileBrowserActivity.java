@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psfplayer.R;
@@ -198,21 +200,40 @@ public class PsfFileBrowserActivity extends Activity
     	MusicListAdapter.clear();
     	File curDir = new File(dir);
     	File[] subDirs = curDir.listFiles(DirFilter);
-    	File[] filteredFiles = curDir.listFiles(PsfFilter);
-    	playList = new ArrayList<String>();
+    	String[] filteredFiles = curDir.list(PsfFilter);
+    	ArrayList<String> dirFiles = new ArrayList<String>(subDirs.length);
+    	
+    	playList = new ArrayList<String>(filteredFiles.length);
 		if (subDirs!= null && subDirs.length > 0) {
     		for (File file : subDirs) {
     			//Log.d(LOGTAG, "Add dir to list: " + file);
-    			MusicListAdapter.add(file.getPath());
+    			dirFiles.add(file.getPath());
     		}
+    		
 		}
-		if (filteredFiles!= null && filteredFiles.length > 0) {
-    		for (File file : filteredFiles) {
-    			//Log.d(LOGTAG, "Add file to list: " + file);
-    			MusicListAdapter.add(file.getPath());
-    			playList.add(file.getPath());
+
+		// Sort dirFiles and psf files
+		Collections.sort(dirFiles, String.CASE_INSENSITIVE_ORDER);
+		Arrays.sort(filteredFiles, String.CASE_INSENSITIVE_ORDER);
+		
+		// Add dirs into list
+		for (String dirs : dirFiles) {
+			MusicListAdapter.add(dirs);
+		}
+
+		// Add psf files into list
+    	for (String file : filteredFiles) {
+    		//Log.d(LOGTAG, "Add file to list: " + file);
+    		String fullPath;
+    		if (dir.endsWith("/")) {
+    			fullPath = dir+file;
     		}
-		}
+    		else {
+    			fullPath = dir+'/'+file;
+    		}
+    		MusicListAdapter.add(fullPath);
+    		playList.add(fullPath);
+    	}
     }
 
     FilenameFilter PsfFilter = new FilenameFilter() {
