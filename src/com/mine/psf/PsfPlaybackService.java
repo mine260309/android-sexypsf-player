@@ -42,6 +42,8 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 /**
@@ -104,6 +106,11 @@ public class PsfPlaybackService extends Service
         // system will relaunch it. Make sure it gets stopped again in that case.
         Message msg = mDelayedStopHandler.obtainMessage();
         mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
+        
+        // Register phone ring state listener, pause playback when in call
+        TelephonyManager tm = (TelephonyManager) getSystemService(
+                Context.TELEPHONY_SERVICE);
+        tm.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
     }
     
     @Override
@@ -694,4 +701,15 @@ public class PsfPlaybackService extends Service
         ed.putBoolean("shufflemode", playShuffle);
         ed.commit();
     }
+    
+	private final PhoneStateListener phoneStateListener = new PhoneStateListener() {
+		public void onCallStateChanged(int state, String incomingNumber) {
+			if (state != TelephonyManager.CALL_STATE_IDLE){
+				if (isPlaying()) {
+					Log.d(LOGTAG, "phone call, pause playback");
+					pause();
+				}
+			}
+		}
+	};
 }
