@@ -40,11 +40,14 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
@@ -55,14 +58,19 @@ public class PsfFileBrowserActivity extends Activity
 	private static final String LOGTAG = "PsfFileBrowserActivity";
 	private static final String MEDIA_PATH = new String(
 			Environment.getExternalStorageDirectory()+"/psf");
-	private static final String DIR_PREFIX = "<dir> ";
+//	private static final String DIR_PREFIX = "<dir> ";
+	private static final String DIR_PREFIX = "";
 
 	private static final int ID_EXIT = 1;
 	private static final int ID_PLAY_ALL = 2;
 	private static final int ID_SHUFFLE_ALL = 3;
 	
+	private static final int TYPE_DIR = 0;
+	private static final int TYPE_PSF = 1;
+	private static final int TYPE_PSF2 = 2;  // psf2 is in future support
+	
 	private ListView MusicListView;
-	private ArrayAdapter<String> MusicListAdapter;
+	private PsfListAdapter MusicListAdapter;
     private ServiceToken mToken;
     private ArrayList<String> playList;
     private TextView CurDirView;
@@ -77,7 +85,7 @@ public class PsfFileBrowserActivity extends Activity
         setContentView(R.layout.psffile_browser_activity);
         //PlayerStatusView = new TextView(this);
         MusicListView = (ListView) findViewById(R.id.psffilelist);
-        MusicListAdapter = new ArrayAdapter<String>(this, R.layout.textview);
+        MusicListAdapter = new PsfListAdapter(this, R.layout.textview);
         MusicListView.setAdapter(MusicListAdapter);
         CurDirView = (TextView) findViewById(R.id.directory_text);
         Log.d(LOGTAG, "Media Path is: " + MEDIA_PATH);
@@ -88,7 +96,8 @@ public class PsfFileBrowserActivity extends Activity
 			    public void onItemClick(AdapterView<?> parent, View view,
 			        int position, long id) {
 			        // When clicked, start playing
-			    	String fileName = TryRemovingPrefix( ((TextView) view).getText().toString());
+			    	String fileName = TryRemovingPrefix( 
+			    			((TextView) view.findViewById(R.id.item_title)).getText().toString());
 			    	String musicName = GetFullPath(curDirName, fileName);
 			    	File testDir = new File(musicName);
 			    	if (testDir.isDirectory()) {
@@ -290,4 +299,47 @@ public class PsfFileBrowserActivity extends Activity
             return file.isDirectory();
         }
     };
+    
+    // Return the type from the name
+    // The name is either a psf/psf2 file, or a dir
+    private int GetFileType(String name) {
+    	if (name.endsWith(".psf") || name.endsWith(".minipsf")) {
+    		return TYPE_PSF;
+    	} else if (name.endsWith(".psf2")) {
+    		return TYPE_PSF2;
+    	} else {
+    		return TYPE_DIR;
+    	}
+    }
+
+    private class PsfListAdapter extends ArrayAdapter<String> {
+    	
+        private LayoutInflater inflater=null;
+
+		public PsfListAdapter(Context context, int textViewResourceId) {
+			super(context, textViewResourceId);
+			inflater = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		}
+	
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent){
+	        View vi=convertView;
+	        if(convertView==null) {
+	            vi = inflater.inflate(R.layout.browse_list_item, null);
+	        }
+	        String name = getItem(position);
+	        TextView text=(TextView)vi.findViewById(R.id.item_title);;
+	        ImageView image=(ImageView)vi.findViewById(R.id.item_img);
+	        text.setText(name);
+	        switch (GetFileType(name)) {
+	        case TYPE_DIR:
+	        	image.setImageResource(R.drawable.ic_psf_folder);
+	        	break;
+	        case TYPE_PSF:
+	        case TYPE_PSF2:
+		        image.setImageResource(R.drawable.ic_psf_file);
+	        }
+	        return vi;
+		}
+    }
 }
