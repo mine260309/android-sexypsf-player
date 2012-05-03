@@ -55,6 +55,7 @@ public class PsfPlaybackService extends Service
 
 	private static final String LOGTAG = "PsfPlaybackService";
 	private BroadcastReceiver mUnmountReceiver = null;
+	private BroadcastReceiver mHeadsetReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
     private MineSexyPsfPlayer PsfPlayer;
@@ -111,6 +112,12 @@ public class PsfPlaybackService extends Service
         TelephonyManager tm = (TelephonyManager) getSystemService(
                 Context.TELEPHONY_SERVICE);
         tm.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        
+        // Register sd card mount/unmount listener
+        registerExternalStorageListener();
+        
+        // Register headset unplug listener;
+        registerHeadsetListener();
     }
     
     @Override
@@ -551,6 +558,29 @@ public class PsfPlaybackService extends Service
             iFilter.addAction(Intent.ACTION_MEDIA_MOUNTED);
             iFilter.addDataScheme("file");
             registerReceiver(mUnmountReceiver, iFilter);
+        }
+    }
+    
+    private void registerHeadsetListener() {
+        if (mHeadsetReceiver == null) {
+        	mHeadsetReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
+                    	int state = intent.getIntExtra("state", 1);
+                    	if (state == 0) {
+                    		Log.d(LOGTAG, "Headset unplugged, pause");
+                    		pause();
+                    	}
+                    	else {
+                    		Log.d(LOGTAG, "Headset plugged");
+                    	}
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+            registerReceiver(mHeadsetReceiver, filter);
         }
     }
 
