@@ -109,6 +109,9 @@ public class PsfUtils {
         }
     }
     
+    // Comment this function for now since it's not used
+    // Will re-enable it if this app needs to open a single file
+    /*
     public static void play(Context context, String psfFile) {
     	if (sService != null) {
     		String[] playList = new String[1];
@@ -116,7 +119,7 @@ public class PsfUtils {
     		playAll(playList, 0);
     	}
     }
-
+	*/
     public static void stop(Context context) {
     	if (sService != null) {
     		sService.stop();

@@ -73,6 +73,8 @@ public class PsfFileBrowserActivity extends Activity
 	private PsfListAdapter MusicListAdapter;
     private ServiceToken mToken;
     private ArrayList<String> playList;
+    private int NumOfDirectory;
+    private int NumOfPsfFiles;
     private TextView CurDirView;
     private String curDirName;
 
@@ -105,8 +107,11 @@ public class PsfFileBrowserActivity extends Activity
 			    		browseToDir(musicName);
 			    	}
 			    	else {
-				    	Log.d(LOGTAG, "pick a music: " + musicName);
-				        PsfUtils.play(view.getContext(), musicName);
+				    	Log.d(LOGTAG, "pick a music: " + musicName +" at pos " + position);
+				    	String[] list = (String[])playList.toArray(new String[playList.size()]);
+				    	// Play the file in the list
+			    		PsfUtils.playAll(list, position-NumOfDirectory);
+				        //PsfUtils.play(view.getContext(), musicName);
 				        startActivity(new Intent(view.getContext(), PsfPlaybackActivity.class));
 				    }
 			    }
@@ -223,6 +228,8 @@ public class PsfFileBrowserActivity extends Activity
 			return;
 		}
 
+    	NumOfDirectory = 0;
+    	NumOfPsfFiles = 0;
     	CurDirView.setText(curDirName);
     	boolean isOnPsfRoot = (curDirName.equals(MEDIA_PATH));
 
@@ -230,6 +237,7 @@ public class PsfFileBrowserActivity extends Activity
     	if (!isOnPsfRoot) {
     		// Add ".." on the first item if it's not on the root
     		MusicListAdapter.add(GetDirNameWithPrefix(".."));
+    		NumOfDirectory++;
     	}
 
     	File[] subDirs = curDir.listFiles(DirFilter);
@@ -245,6 +253,7 @@ public class PsfFileBrowserActivity extends Activity
     		Collections.sort(dirFiles, String.CASE_INSENSITIVE_ORDER);
     		for (String dirs : dirFiles) {
     			MusicListAdapter.add(GetDirNameWithPrefix(dirs));
+    			NumOfDirectory++;
     		}
 		}
 
@@ -255,6 +264,7 @@ public class PsfFileBrowserActivity extends Activity
 	    	for (String file : filteredFiles) {
 	    		MusicListAdapter.add(file);
 	    		playList.add(GetFullPath(curDirName, file));
+	    		NumOfPsfFiles++;
 	    	}
 		}
 		else {
