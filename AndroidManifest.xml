@@ -21,8 +21,13 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.mine.psfplayer">
+        package="com.mine.psfplayer"
+        android:versionCode="1"
+        android:versionName="0.1" >
 
+    <uses-sdk android:minSdkVersion="4"
+            android:targetSdkVersion="7" />
+    
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!--  uses-permission android:name="android.permission.INTERNET" / -->
@@ -32,8 +37,7 @@
     <application android:icon="@drawable/minepsfplayer"
         android:label="@string/minepsfplayer_app">
 
-        <activity android:name="com.mine.psf.PsfFileBrowserActivity"
-            android:theme="@android:style/Theme.NoTitleBar" >
+        <activity android:name="com.mine.psf.PsfFileBrowserActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
