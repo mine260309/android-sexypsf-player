@@ -77,7 +77,7 @@ public class PsfPlaybackService extends Service
 	public static final int MSG_JUMP_PREV = STATE_MSG_MAX + 2;
 
     // interval after which we stop the service when idle
-    private static final int IDLE_DELAY = 60000;
+    private static final int IDLE_DELAY = 20000;
 
 	// playlist that should be set by browser
 	private String[] playList = null;
@@ -107,15 +107,15 @@ public class PsfPlaybackService extends Service
         // system will relaunch it. Make sure it gets stopped again in that case.
         Message msg = mDelayedStopHandler.obtainMessage();
         mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
-        
+
         // Register phone ring state listener, pause playback when in call
         TelephonyManager tm = (TelephonyManager) getSystemService(
                 Context.TELEPHONY_SERVICE);
         tm.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
-        
+
         // Register sd card mount/unmount listener
         registerExternalStorageListener();
-        
+
         // Register headset unplug listener;
         registerHeadsetListener();
     }
@@ -130,15 +130,20 @@ public class PsfPlaybackService extends Service
         	PsfPlayer.Stop();
         	PsfPlayer = null;
         }
-        
+
     	// make sure there aren't any other messages coming
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         mMediaplayerHandler.removeCallbacksAndMessages(null);
-        
+
         //unregisterReceiver(mIntentReceiver);
         if (mUnmountReceiver != null) {
             unregisterReceiver(mUnmountReceiver);
             mUnmountReceiver = null;
+        }
+
+        if (mHeadsetReceiver != null) {
+        	unregisterReceiver(mHeadsetReceiver);
+        	mHeadsetReceiver = null;
         }
 
     	Log.d(LOGTAG, "onDestroy, Release Wake Lock");
@@ -176,9 +181,11 @@ public class PsfPlaybackService extends Service
     		if ( playList.length > 0  || mMediaplayerHandler.hasMessages(STATE_STOPPED)) {
     			Message msg = mDelayedStopHandler.obtainMessage();
     			mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
+    	    	Log.d(LOGTAG, "onUnbind, wait a while before stopping service");
     			return true;
     		}
     	}
+    	Log.d(LOGTAG, "onUnbind, stop service");
         stopSelf(mServiceStartId);
         return true;
     }
@@ -265,6 +272,7 @@ public class PsfPlaybackService extends Service
             // since the user exited the music app (because of
             // party-shuffle or because the play-position changed)
             saveQueue();
+            Log.d(LOGTAG, "stop service");
             stopSelf(mServiceStartId);
         }
     };
@@ -472,6 +480,7 @@ public class PsfPlaybackService extends Service
 		if (PsfPlayer != null) {
 			PsfPlayer.Quit();
 		}
+        gotoIdleState();
 	}
 
     private void notifyChange(String what) {

@@ -277,7 +277,7 @@ public class MineSexyPsfPlayer {
 //					e.printStackTrace();
 //				}
 
-				Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
+				//Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
 	        }
 			Log.d(LOGTAG, "PsfAudioGetThread exit!");
 		}
@@ -322,7 +322,7 @@ public class MineSexyPsfPlayer {
 
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
 					CircularBuffer.GetReadBufferDone(chunk.len);
-					Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
+					//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
 
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
 						Log.d(LOGTAG, "call AudioTrack.play()");
@@ -339,11 +339,11 @@ public class MineSexyPsfPlayer {
 			if (CircularBuffer.getEndFlag()) {
 				try {
 					int left = CircularBuffer.GetBufferAvailable();
-					Log.d(LOGTAG, "PsfAudioPutThread end of playback, data left: " + left);
+					//Log.d(LOGTAG, "PsfAudioPutThread end of playback, data left: " + left);
 					if (left > 0) {
 						MineAudioCircularBuffer.BufferChunk chunk =
 							CircularBuffer.GetReadBufferPrepare(left);
-						Log.d(LOGTAG, "PsfAudioPutThread write left data: " + chunk.len);
+						//Log.d(LOGTAG, "PsfAudioPutThread write left data: " + chunk.len);
 						PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
 						CircularBuffer.GetReadBufferDone(chunk.len);
 
@@ -370,7 +370,7 @@ public class MineSexyPsfPlayer {
 				notifyStateChange(PsfPlayerState.STATE_STOPPED);
 			}
 			else {
-				Log.e(LOGTAG, "Interrupted for unknown reason!");
+				Log.d(LOGTAG, "Interrupted");
 			}
 			Log.d(LOGTAG, "PsfAudioPutThread exit!");
 		}
