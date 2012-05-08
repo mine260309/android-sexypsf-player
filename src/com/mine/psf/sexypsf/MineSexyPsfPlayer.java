@@ -51,6 +51,7 @@ public class MineSexyPsfPlayer {
 	
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
+	private static final int MINE_SEXYPSF_TRACK_END_THRESHOLD = 3;
 	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
@@ -156,7 +157,6 @@ public class MineSexyPsfPlayer {
 		if (getPsfState() == PsfPlayerState.STATE_IDLE) {
 			return;
 		}
-		ClearPositionSampleDataSize();
 		threadShallExit = true;
 		setPsfState(PsfPlayerState.STATE_IDLE);
 		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");
@@ -266,11 +266,21 @@ public class MineSexyPsfPlayer {
 	        	ret = MineSexyPsfLib.sexypsfputaudiodataindex(chunk.buffer, chunk.index, chunk.len);
 	        	CircularBuffer.GetWriteBufferDone(chunk.len);
 	        	if (ret != chunk.len){
-	        		// the playback is end, we shall let the play_thread exit
-	        		// and then let itself exit
-	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", play to end");
-	        		CircularBuffer.setAudioBufferEnd();
-	        		// TODO: should I really need to interrupt? PutThread.interrupt();
+	        		// If the returned data is less than requested data
+	        		// Either the playback is end, we shall let the play_thread exit and notify end
+	        		// Or the playback is interrupted, we shall not set end flag
+	        		// FIXME: a tricky track here, compare the current pos and duration to 
+	        		// check if it's play to the end
+	        		// TODO: remove below log
+	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", check if play to end");
+	        		int duration = PsfFileInfo.duration / 1000;
+	        		int pos = GetPositionFromSampleDataSize();
+	        		// TODO: remove below log
+	        		Log.d(LOGTAG, "duration: " + duration + ", pos: "
+	        				+ GetPositionFromSampleDataSize());
+	        		if (Math.abs(duration - pos) <= MINE_SEXYPSF_TRACK_END_THRESHOLD) {
+		        		CircularBuffer.setAudioBufferEnd();
+	        		}
 	        		break;
 	        	}
 

@@ -740,7 +740,7 @@ public class PsfPlaybackService extends Service
         ed.putBoolean("shufflemode", playShuffle);
         ed.commit();
     }
-    
+
 	private final PhoneStateListener phoneStateListener = new PhoneStateListener() {
 		public void onCallStateChanged(int state, String incomingNumber) {
 			if (state != TelephonyManager.CALL_STATE_IDLE){
