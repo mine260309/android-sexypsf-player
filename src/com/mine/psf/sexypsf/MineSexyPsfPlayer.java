@@ -29,6 +29,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioTrack.OnPlaybackPositionUpdateListener;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.util.Log;
 
 public class MineSexyPsfPlayer {
@@ -53,11 +54,11 @@ public class MineSexyPsfPlayer {
 	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
-	private String PsfFileName;
 	private PsfInfo PsfFileInfo;
 	private boolean isAudioTrackOpened;
 	private int PlayerState;
 	private Handler mHandler;
+	private int SampleDataSizePlayed;
 	
 	private PsfAudioGetThread GetThread;
 	private PsfAudioPutThread PutThread;
@@ -88,7 +89,6 @@ public class MineSexyPsfPlayer {
 		isAudioTrackOpened = false;
 
 		// 2) Open psf file
-		PsfFileName = psfFile;
 		ret = MineSexyPsfLib.sexypsfopen(psfFile);
 		if (ret) {
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
@@ -125,6 +125,7 @@ public class MineSexyPsfPlayer {
 		if (playCmd == PSFPLAY) {
 			if (!isAudioTrackOpened) {
 				Log.d(LOGTAG, "Will open AudioTrack and play");
+				ClearPositionSampleDataSize();
 				MineSexyPsfLib.sexypsfplay();
 				setPsfState(PsfPlayerState.STATE_PENDING_PLAY);
 				// Start playing after opened
@@ -155,6 +156,7 @@ public class MineSexyPsfPlayer {
 		if (getPsfState() == PsfPlayerState.STATE_IDLE) {
 			return;
 		}
+		ClearPositionSampleDataSize();
 		threadShallExit = true;
 		setPsfState(PsfPlayerState.STATE_IDLE);
 		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");
@@ -197,7 +199,11 @@ public class MineSexyPsfPlayer {
 	
 	public int GetPosition() {
 		if (isActive()) {
-			return MineSexyPsfLib.sexypsfgetpos();
+			// The native position is the decoded position
+			// which is typically 2~5s faster than the actual playback
+			// So here I need to calculate the position by my self
+			return GetPositionFromSampleDataSize();
+			//return MineSexyPsfLib.sexypsfgetpos();
 		}
 		else {
 			return 0;
@@ -248,7 +254,7 @@ public class MineSexyPsfPlayer {
 	private class PsfAudioGetThread extends Thread {
 		public void run(){
 			int ret;
-			int counter = 0;
+			//int counter = 0;
 			while(true){
 	        	if (threadShallExit) {
 	        		CircularBuffer.Discard();
@@ -286,7 +292,7 @@ public class MineSexyPsfPlayer {
 	// The thread that write data to hw
 	private class PsfAudioPutThread extends Thread {
 		public void run() {
-			int counter = 0;
+			//int counter = 0;
 			while(!isInterrupted() && !CircularBuffer.getEndFlag())
 			{
 				if (threadShallExit) {
@@ -320,6 +326,7 @@ public class MineSexyPsfPlayer {
 //						e.printStackTrace();
 //					}
 
+					SampleDataSizePlayed += chunk.len;
 					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
 					CircularBuffer.GetReadBufferDone(chunk.len);
 					//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
@@ -345,6 +352,7 @@ public class MineSexyPsfPlayer {
 							CircularBuffer.GetReadBufferPrepare(left);
 						//Log.d(LOGTAG, "PsfAudioPutThread write left data: " + chunk.len);
 						PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+						SampleDataSizePlayed += chunk.len;
 						CircularBuffer.GetReadBufferDone(chunk.len);
 
 						// set end marker
@@ -376,6 +384,39 @@ public class MineSexyPsfPlayer {
 		}
 	}
 
+	private int LastSampleDataSize = 0;
+	private long LastPosTime = 0;
+	private int LastPos = 0;
+	private void ClearPositionSampleDataSize() {
+		SampleDataSizePlayed = 0;
+		LastSampleDataSize = 0;
+		LastPosTime = 0;
+		LastPos = 0;		
+	}
+	private int GetPositionFromSampleDataSize() {
+		// Calculate position
+		// Case 1: if SampleDataSizePlayed is not changed
+		//         pos = last pos + time elapsed
+		// Case 2: if it's changed
+		// 	       pos = samplecount / samplerate
+		//         where samplecount = datasize/4 (16bit per sample, 2 channels)
+		//         and samplerate = 44100
+		if (LastSampleDataSize != SampleDataSizePlayed) {
+			LastSampleDataSize = SampleDataSizePlayed;
+			LastPosTime = SystemClock.uptimeMillis();
+			LastPos = SampleDataSizePlayed/4/44100;
+			return LastPos;
+		}
+		else {
+			if (isPlaying() && (LastPosTime != 0)) {
+				return (int)((SystemClock.uptimeMillis()-LastPosTime)/1000
+					+ LastPos);
+			}
+			else {
+				return LastPos;
+			}
+		}
+	}
 	// The semaphore of psf playback's end
 //	Semaphore PsfPlaybackEndSemaphore;
 //	private void notifyPsfEnd() {
