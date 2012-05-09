@@ -273,13 +273,9 @@ public class MineSexyPsfPlayer {
 	        		// check if it's play to the end
 	        		// TODO: remove below log
 	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", check if play to end");
-	        		int duration = PsfFileInfo.duration / 1000;
-	        		int pos = GetPositionFromSampleDataSize();
-	        		// TODO: remove below log
-	        		Log.d(LOGTAG, "duration: " + duration + ", pos: "
-	        				+ GetPositionFromSampleDataSize());
-	        		if (Math.abs(duration - pos) <= MINE_SEXYPSF_TRACK_END_THRESHOLD) {
-		        		CircularBuffer.setAudioBufferEnd();
+	        		// If the state is idle, it means Stop() is called
+	        		if (getPsfState() != PsfPlayerState.STATE_IDLE) {
+	        			CircularBuffer.setAudioBufferEnd();
 	        		}
 	        		break;
 	        	}
