@@ -78,6 +78,7 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="com.mine.psf.PsfSettingsActivity" />
 
         <!--  activity android:name="com.android.music.NowPlayingActivity">
             <intent-filter>

@@ -50,5 +50,11 @@
         Thanks to Raphael Assenat for his GPL sexypsf lib.\n
         Visit http://projects.raphnet.net/ for more information about sexypsf project.
     </string>
+    
+    <!-- Preference strings -->
+    <string name="pref_settings">Settings</string>
+    <!-- string name="pref_setting_category_psf">Player Settings</string -->
+    <string name="pref_psf_root_dir_title">Psf Root Dir</string>
+    <string name="pref_psf_root_dir_summary">Set Psf Root Directory</string>
 </resources>
 

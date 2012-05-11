@@ -157,7 +157,7 @@ public class PsfFileBrowserActivity extends Activity
         menu.add(1, ID_ABOUT, 0, R.string.about).setIcon(R.drawable.ic_about);
         return true;
     }
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch(item.getItemId())
@@ -186,7 +186,8 @@ public class PsfFileBrowserActivity extends Activity
     	}
     	case ID_SETTINGS:
     	{
-    		// TODO
+    		showSettings();
+    		break;
     	}
     	}
         return super.onOptionsItemSelected(item);
@@ -223,9 +224,14 @@ public class PsfFileBrowserActivity extends Activity
 						}).create();
 	}
 
-    public void ExitApp() {
+    private void ExitApp() {
     	PsfUtils.quit();
     	finish();
+    }
+
+    private void showSettings() {
+		Intent intent = new Intent(this, PsfSettingsActivity.class);
+		startActivity(intent);
     }
 
 	@Override
