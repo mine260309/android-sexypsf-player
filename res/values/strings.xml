@@ -27,6 +27,8 @@
     <string name="unknown_artist_name">Unknown artist</string>
     <string name="play_all">Play all</string>
     <string name="shuffle_all">Shuffle all</string>
+    <string name="settings">Preferences</string>
+    <string name="about">About</string>
     
     <!-- Do not translate. Duration format for duration < 1 hour -->
     <string translatable="false" name="durationformatshort"><xliff:g id="format">%2$d:%5$02d</xliff:g></string>
@@ -41,5 +43,12 @@
     <!-- Dialog box button -->
     <string name="service_start_error_button">OK</string>
 
+    <!-- About dialog -->
+    <string name="sexypsf_about">MinePsfPlayer (%1$s)\n
+        This is an open sourced music player for Sony PlayStation Video Game\'s original sound track.\n
+        \n
+        Thanks to Raphael Assenat for his GPL sexypsf lib.\n
+        Visit http://projects.raphnet.net/ for more information about sexypsf project.
+    </string>
 </resources>
 

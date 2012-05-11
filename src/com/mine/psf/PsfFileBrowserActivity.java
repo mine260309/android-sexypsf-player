@@ -30,12 +30,18 @@ import com.mine.psf.PsfUtils.ServiceToken;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -64,6 +70,8 @@ public class PsfFileBrowserActivity extends Activity
 	private static final int ID_EXIT = 1;
 	private static final int ID_PLAY_ALL = 2;
 	private static final int ID_SHUFFLE_ALL = 3;
+	private static final int ID_SETTINGS = 4;
+	private static final int ID_ABOUT = 5;
 	
 	private static final int TYPE_DIR = 0;
 	private static final int TYPE_PSF = 1;
@@ -145,6 +153,8 @@ public class PsfFileBrowserActivity extends Activity
         menu.add(0, ID_EXIT, 0, R.string.menu_exit).setIcon(R.drawable.ic_menu_exit);
         menu.add(0, ID_PLAY_ALL, 0, R.string.play_all).setIcon(R.drawable.ic_menu_play_clip);
         menu.add(0, ID_SHUFFLE_ALL, 0, R.string.shuffle_all).setIcon(R.drawable.ic_menu_shuffle);
+        menu.add(1, ID_SETTINGS, 0, R.string.settings).setIcon(R.drawable.ic_settings);
+        menu.add(1, ID_ABOUT, 0, R.string.about).setIcon(R.drawable.ic_about);
         return true;
     }
     
@@ -169,10 +179,50 @@ public class PsfFileBrowserActivity extends Activity
 	        startActivity(new Intent(this, PsfPlaybackActivity.class));
 	        return true;
     	}
+    	case ID_ABOUT:
+    	{
+    		showDialog(ID_ABOUT);
+    		break;
+    	}
+    	case ID_SETTINGS:
+    	{
+    		// TODO
+    	}
     	}
         return super.onOptionsItemSelected(item);
     }
-    
+
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		// show dialog according to the id
+		String msg;
+		if (id == ID_ABOUT) {
+    		// Get version code
+    		String versionString="";
+    		PackageManager manager = getPackageManager();
+    		try {
+    			PackageInfo info = manager.getPackageInfo(getPackageName(),0);
+    			versionString = info.versionName;
+    		} catch (NameNotFoundException e) {
+    			e.printStackTrace();
+    		}
+    		// Format dialog msg
+    		msg = String.format(getString(R.string.sexypsf_about),versionString);
+		}
+		else {
+			Log.e(LOGTAG, "Unknown dialog id");
+			msg = "";
+		}
+		return new AlertDialog.Builder(this).setMessage(msg)
+				.setPositiveButton(android.R.string.ok,
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int whichButton) {
+								/* User clicked OK so do some stuff */
+							}
+						}).create();
+	}
+
     public void ExitApp() {
     	PsfUtils.quit();
     	finish();
