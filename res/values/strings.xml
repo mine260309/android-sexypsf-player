@@ -29,7 +29,7 @@
     <string name="shuffle_all">Shuffle all</string>
     <string name="settings">Preferences</string>
     <string name="about">About</string>
-    
+
     <!-- Do not translate. Duration format for duration < 1 hour -->
     <string translatable="false" name="durationformatshort"><xliff:g id="format">%2$d:%5$02d</xliff:g></string>
     <!-- Do not translate. Duration format for duration >= 1 hour -->
@@ -56,5 +56,8 @@
     <!-- string name="pref_setting_category_psf">Player Settings</string -->
     <string name="pref_psf_root_dir_title">Psf Directory</string>
     <string name="pref_psf_root_dir_dialog_title">Set Psf Root Directory</string>
+    
+    <!-- Toast strings -->
+    <string name="playlist_empty_error">Playlist Empty!\nPlease select a direcotry contains psf files.</string>
 </resources>
 

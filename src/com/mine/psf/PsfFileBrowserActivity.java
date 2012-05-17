@@ -50,6 +50,7 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.Toast;
 
 public class PsfFileBrowserActivity extends Activity
 									implements ServiceConnection,
@@ -158,6 +159,10 @@ public class PsfFileBrowserActivity extends Activity
     	case ID_PLAY_ALL:
     	{
     		String[] list = (String[])playList.toArray(new String[playList.size()]);
+    		if (list.length == 0) {
+    			showListEmptyError();
+    			return true;
+    		}
     		PsfUtils.playAll(list, 0);
 	        startActivity(new Intent(this, PsfPlaybackActivity.class));
 	        return true;
@@ -165,6 +170,10 @@ public class PsfFileBrowserActivity extends Activity
     	case ID_SHUFFLE_ALL:
     	{
     		String[] list = (String[])playList.toArray(new String[playList.size()]);
+    		if (list.length == 0) {
+    			showListEmptyError();
+    			return true;
+    		}
     		PsfUtils.shuffleAll(list);
 	        startActivity(new Intent(this, PsfPlaybackActivity.class));
 	        return true;
@@ -222,6 +231,12 @@ public class PsfFileBrowserActivity extends Activity
     private void showSettings() {
 		Intent intent = new Intent(this, PsfSettingsActivity.class);
 		startActivity(intent);
+    }
+
+    private void showListEmptyError() {
+    	// Show a toast indicating play list empty
+    	Toast.makeText(c, R.string.playlist_empty_error,
+    			Toast.LENGTH_LONG).show();
     }
 
 	@Override

@@ -329,6 +329,7 @@ public class PsfPlaybackService extends Service
 			}
 		}
 	}
+
 	public void play() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
