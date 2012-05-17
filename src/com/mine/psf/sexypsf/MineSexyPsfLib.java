@@ -1,6 +1,6 @@
 /*************************************************************************
  * MinePsfPlayer is an Android App that plays psf and minipsf files.
- * Copyright (C) 2010  Lei YU
+ * Copyright (C) 2010-2012  Lei YU
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

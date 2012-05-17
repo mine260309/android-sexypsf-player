@@ -1,7 +1,6 @@
 /*************************************************************************
- * MineMessageVibrator is an Android App that provides vibrate and 
- * reminder functions for SMS, MMS, Gmail, etc. 
- * Copyright (C) 2010  Lei YU
+ * MinePsfPlayer is an Android App that plays psf and minipsf files.
+ * Copyright (C) 2010-2012  Lei YU
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

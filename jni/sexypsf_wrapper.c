@@ -15,11 +15,11 @@
  *  along with android-sexypsf.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define DEBUG_LEVEL 1
-//#define DEBUG_DUMP_PCM
-
 #include <string.h>
 #include <jni.h>
+
+#define DEBUG_LEVEL 0
+//#define DEBUG_DUMP_PCM
 #include "sexypsf_android.h"
 
 #ifdef DEBUG_DUMP_PCM
@@ -82,10 +82,10 @@ jboolean Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfopen( JNIEnv* env,
     	strcat(dump_file_name, ".dmp");
         dump_file = fopen(dump_file_name, "wb");
         if (dump_file) {
-            sexypsf_dbg_printf("Opened dump file %s\n", dump_file_name);
+            debug_printf("Opened dump file %s\n", dump_file_name);
         }
         else {
-            sexypsf_dbg_printf("Open dump file failure %s\n", dump_file_name);
+            debug_printf("Open dump file failure %s\n", dump_file_name);
         }
         free(dump_file_name);
     }
@@ -205,7 +205,7 @@ void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfstop( JNIEnv* env,
     psf_stop();
 #ifdef DEBUG_DUMP_PCM
     if (dump_file) {
-        sexypsf_dbg_printf("Closing dump file\n");
+        debug_printf("Closing dump file\n");
     	fclose(dump_file);
     }
     dump_file = NULL;
@@ -242,14 +242,14 @@ jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodata( JNIEnv* env,
     int ret;
     carr = (*env)->GetPrimitiveArrayCritical(env, arr, NULL);
     if (carr == NULL) {
-        sexypsf_dbg_printf("Get NULL array in JNI call, nothing to put!!!\n");
+        debug_printf("Get NULL array in JNI call, nothing to put!!!\n");
         return 0; /* exception occurred */
     }
     ret = psf_audio_putdata((uint8_t*)carr, size);
-    sexypsf_dbg_printf("sexypsfputaudiodata: req %d, got %d", size, ret);
+    debug_printf("sexypsfputaudiodata: req %d, got %d", size, ret);
 #ifdef DEBUG_DUMP_PCM
     if (dump_file) {
-        sexypsf_dbg_printf("Dump pcm data %d\n", ret);
+        debug_printf("Dump pcm data %d\n", ret);
 		fwrite(carr, ret, 1, dump_file);
     }
 #endif
@@ -286,14 +286,14 @@ jint Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfputaudiodataindex( JNIEnv* 
     int ret;
     carr = (*env)->GetPrimitiveArrayCritical(env, arr, NULL);
     if (carr == NULL) {
-        sexypsf_dbg_printf("Get NULL array in JNI call, nothing to put!!!\n");
+        debug_printf("Get NULL array in JNI call, nothing to put!!!\n");
         return 0; /* exception occurred */
     }
     ret = psf_audio_putdata((uint8_t*)carr+index, size);
-    sexypsf_dbg_printf("sexypsfputaudiodataindex: req %d, got %d", size, ret);
+    debug_printf("sexypsfputaudiodataindex: req %d, got %d", size, ret);
 #ifdef DEBUG_DUMP_PCM
     if (dump_file) {
-        sexypsf_dbg_printf("Dump pcm data %d\n", ret);
+        debug_printf("Dump pcm data %d\n", ret);
 		fwrite(carr+index, ret, 1, dump_file);
     }
 #endif
@@ -314,12 +314,12 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
     	jvalue args[11];
     	jobject object;
 
-    	sexypsf_dbg_printf("get psf info success");
+    	debug_printf("get psf info success");
 
     	// get a reference to the class
     	cls = (*env)->FindClass(env, "com/mine/psf/sexypsf/PsfInfo");
     	if (cls == NULL) {
-    		sexypsf_dbg_printf("Failed to get class");
+    		debug_printf("Failed to get class");
     		return NULL;
     	}
     	// get a reference to the constructor; the name is <init>
@@ -327,7 +327,7 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
     	constructor = (*env)->GetMethodID(env, cls, "<init>",
     			"(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     	if (constructor == NULL) {
-    		sexypsf_dbg_printf("Failed to get the method");
+    		debug_printf("Failed to get the method");
     		return NULL;
     	}
     	// set up the arguments; i means int, l means object
@@ -348,7 +348,7 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
 		return object;
     }
     else {
-    	sexypsf_dbg_printf("get psf info fail");
+    	debug_printf("get psf info fail");
     	return NULL;
     }
 }

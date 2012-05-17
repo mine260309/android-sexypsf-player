@@ -39,7 +39,7 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 #include <string.h>
 #include <unistd.h>
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 0
 //#define DEBUG_DUMP_PCM
 
 #include "sexypsf_android.h"
@@ -445,10 +445,10 @@ BOOL psf_open(const char* file_name)
         strcat(dump_file_name, ".o");
         dump_file2 = fopen(dump_file_name, "wb");
         if (dump_file && dump_file2) {
-            sexypsf_dbg_printf("Opened dump file %s\n", dump_file_name);
+            debug_printf("Opened dump file %s\n", dump_file_name);
         }
         else {
-            sexypsf_dbg_printf("Open dump file failure %s\n", dump_file_name);
+            debug_printf("Open dump file failure %s\n", dump_file_name);
         }
         free(dump_file_name);
     }
@@ -505,7 +505,7 @@ void psf_stop()
 {
 #ifdef DEBUG_DUMP_PCM
     if (dump_file) {
-        sexypsf_dbg_printf("Closing dump file\n");
+        debug_printf("Closing dump file\n");
     	fclose(dump_file);
     }
     if (dump_file2) {
@@ -663,7 +663,7 @@ void sexyd_update(unsigned char *Buffer, long count)
 
 #ifdef DEBUG_DUMP_PCM
     if (dump_file2 && count != 0) {
-        sexypsf_dbg_printf("Dump pcm2.o data %d\n", count);
+        debug_printf("Dump pcm2.o data %d\n", count);
 		fwrite(Buffer, count, 1, dump_file2);
     }
 #endif
@@ -748,7 +748,7 @@ int psf_audio_putdata(uint8_t *stream, int len)
         get_len = get_audio_buf(audio_static_data+audio_data_index, len-audio_data_index);
 #ifdef DEBUG_DUMP_PCM
     if (dump_file && get_len != 0) {
-        sexypsf_dbg_printf("Dump pcm2 data %d\n", get_len);
+        debug_printf("Dump pcm2 data %d\n", get_len);
 		fwrite(audio_static_data+audio_data_index, get_len, 1, dump_file);
     }
 #endif
