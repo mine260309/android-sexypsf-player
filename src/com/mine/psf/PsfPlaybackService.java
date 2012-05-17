@@ -684,7 +684,7 @@ public class PsfPlaybackService extends Service
 			oos.writeObject(shuffleList);
 			oos.close();
 	    	fos.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return;
 		}

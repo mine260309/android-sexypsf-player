@@ -5,29 +5,27 @@
     android:layout_height="fill_parent"
     android:orientation="vertical"
     android:gravity="center_vertical" >
-
+    
     <FrameLayout
         android:layout_width="fill_parent" 
         android:layout_height="wrap_content">
-        <TextView android:id="@+id/directory_text"
+        <TextView android:id="@+id/psffolder_text"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:textAppearance="?android:attr/textAppearanceLarge" />
+                  android:textAppearance="?android:attr/textAppearanceLarge"
+                  android:textStyle="bold" />
     </FrameLayout>
 
-    <!-- The frame layout is here that we will be showing the list view.  -->
     <FrameLayout
         android:layout_width="fill_parent" 
         android:layout_height="0dip"
         android:layout_weight="1" >
-        <!-- Here is the psf file list -->
-        <ListView
-	        android:id="@+id/psffilelist"
+	    <!-- Here is the psf folder list -->
+	    <ListView
+	        android:id="@+id/psffolderlist"
 	        android:layout_width="fill_parent"
 	        android:layout_height="fill_parent"
-	        android:fastScrollEnabled="true"
-            android:drawSelectorOnTop="false"/>
-
-    </FrameLayout>
-    <include layout="@layout/nowplaying" />
+	        android:drawSelectorOnTop="false"
+	        android:fastScrollEnabled="false" />
+	</FrameLayout>
 </LinearLayout>
