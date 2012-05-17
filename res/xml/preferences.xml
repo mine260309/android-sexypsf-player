@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 
     <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-                      android:title="@string/pref_settings">
-        <PreferenceCategory>
-            <com.mine.psf.PsfDirectoryChoosePreference 
-                android:title="@string/pref_psf_root_dir_title" 
-                android:key="@string/key_psf_root_dir"/>
-        </PreferenceCategory>
+                      android:title="@string/pref_settings"
+                      android:key="@string/pref_settings">
+        <com.mine.psf.PsfDirectoryChoosePreference
+        	android:key="@string/key_psf_root_dir"
+        	android:title="@string/pref_psf_root_dir_title" />
+
     </PreferenceScreen>

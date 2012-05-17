@@ -56,7 +56,8 @@
     <!-- string name="pref_setting_category_psf">Player Settings</string -->
     <string name="pref_psf_root_dir_title">Psf Directory</string>
     <string name="pref_psf_root_dir_dialog_title">Set Psf Root Directory</string>
-    
+    <string name="first_time_run_dialog_msg">You may be the first time to run this app, please set the directory of your psf files, and enjoy~\n
+        It\'s fine if you don\'t set a dir, the default external storage will be used.</string>
     <!-- Toast strings -->
     <string name="playlist_empty_error">Playlist Empty!\nPlease select a direcotry contains psf files.</string>
 </resources>

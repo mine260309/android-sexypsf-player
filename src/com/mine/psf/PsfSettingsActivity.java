@@ -23,6 +23,7 @@ import com.mine.psfplayer.R;
 
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceScreen;
 
 public class PsfSettingsActivity extends PreferenceActivity {
 	
@@ -30,9 +31,19 @@ public class PsfSettingsActivity extends PreferenceActivity {
 	protected void onCreate(Bundle icicle) {
 		
 		super.onCreate(icicle);
-
 		addPreferencesFromResource(R.xml.preferences);
+		
+		Bundle extras = getIntent().getExtras(); 
+		if (extras != null) {
+			boolean directShowPsfDialog = extras.getBoolean("DirectShowDlg");
+			if (directShowPsfDialog) {
+				PreferenceScreen screen = 
+						(PreferenceScreen) findPreference(
+								getString(R.string.pref_settings));
+				int pos = findPreference(
+						getString(R.string.key_psf_root_dir)).getOrder();
+				screen.onItemClick(null, null, pos, 0);
+			}
+		}
 	}
-	
-	// TODO: Implement setting psf root dir function
 }
