@@ -79,8 +79,9 @@ public class PsfFileBrowserActivity extends Activity
     {
         super.onCreate(savedInstanceState);
         c = this;
+        handleFirstTimeRun();
+        
         setContentView(R.layout.psffile_browser_activity);
-
         // Prepare the music list
         MusicListView = (ListView) findViewById(R.id.psffilelist);
         CurDirView = (TextView) findViewById(R.id.directory_text);
@@ -292,5 +293,27 @@ public class PsfFileBrowserActivity extends Activity
         MusicListView.setAdapter(MusicListAdapter);
         playList = MusicListAdapter.getPlayList();
         CurDirView.setText(MusicListAdapter.getCurDir());
+	}
+	
+	private void handleFirstTimeRun() {
+		// Check if the psf root dir is set
+		// If not, probably it's the first time run,
+		// so ask user to set the psf root dir
+		SharedPreferences settings = PreferenceManager
+				.getDefaultSharedPreferences(c);
+		if (!settings.contains(getString(R.string.key_psf_root_dir))) {
+			Log.d(LOGTAG, "First time run");
+			new AlertDialog.Builder(c).setMessage(R.string.first_time_run_dialog_msg)
+			.setPositiveButton(android.R.string.ok,
+					new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog,
+								int whichButton) {
+							// Direct to the psf root dir setting
+							Intent intent = new Intent(c, PsfSettingsActivity.class);
+							intent.putExtra("DirectShowDlg", true);
+							startActivity(intent);
+						}
+					}).create().show();
+		}
 	}
 }

@@ -19,9 +19,9 @@ import android.widget.AdapterView.OnItemClickListener;
 
 public class PsfDirectoryChoosePreference extends DialogPreference {
 	private static final String LOGTAG = "DirChoosePref";
-	private static final String DEFAULT_MEDIA_PATH = new String(
-			Environment.getExternalStorageDirectory()+"/psf");
-	
+	private static final String DEFAULT_MEDIA_PATH =
+			Environment.getExternalStorageDirectory().toString();
+
 	private Context context;
 	private PsfListAdapter listAdapter;
 	private ListView dirListView;
@@ -41,7 +41,7 @@ public class PsfDirectoryChoosePreference extends DialogPreference {
 		this.context = context;
 		initDialog();
 	}
-	
+
 	private void initDialog() {
 		setDialogTitle(R.string.pref_psf_root_dir_dialog_title);
 		setSummary(getPsfRootDir(context));
@@ -59,7 +59,7 @@ public class PsfDirectoryChoosePreference extends DialogPreference {
 				PsfFileNavigationUtils.BROWSE_MODE_DIR_ONLY);
 		dirListView.setAdapter(listAdapter);
 		curDirView.setText(listAdapter.getCurDir());
-		
+
 		dirListView.setOnItemClickListener(new OnItemClickListener() {
 		    public void onItemClick(AdapterView<?> parent, View view,
 		        int position, long id) {
@@ -83,23 +83,20 @@ public class PsfDirectoryChoosePreference extends DialogPreference {
 		if (positiveResult) {
 			psfRootDir = listAdapter.getCurDir();
 			Log.d(LOGTAG, "save psf root dir: " + psfRootDir);
-
-			// Save psf root
+			savePsfRootDir(context, psfRootDir);
+			// Change the summary
+			setSummary(getPsfRootDir(context));			
+		}
+		else {
+			// Save default value if not existing
 			SharedPreferences settings = PreferenceManager
 					.getDefaultSharedPreferences(context);
-			SharedPreferences.Editor editor = settings.edit();
-			editor.putString(
-					context.getString(R.string.key_psf_root_dir),
-					psfRootDir);
-			editor.commit();
-			
-			// Change the summary
-			setSummary(getPsfRootDir(context));
-			
-			// Notify the browse activity
+			if (!settings.contains(context.getString(R.string.key_psf_root_dir))) {
+				savePsfRootDir(context, DEFAULT_MEDIA_PATH);
+			}
 		}
 	}
-	
+
 	public static String getPsfRootDir(Context context) {
 		if (psfRootDir == null) {
 			SharedPreferences settings = PreferenceManager
@@ -109,5 +106,16 @@ public class PsfDirectoryChoosePreference extends DialogPreference {
 					DEFAULT_MEDIA_PATH);
 		}
 		return psfRootDir; 
+	}
+	
+	private static void savePsfRootDir(Context context, String dir) {
+		// Save psf root
+		SharedPreferences settings = PreferenceManager
+				.getDefaultSharedPreferences(context);
+		SharedPreferences.Editor editor = settings.edit();
+		editor.putString(
+				context.getString(R.string.key_psf_root_dir),
+				psfRootDir);
+		editor.commit();
 	}
 }
