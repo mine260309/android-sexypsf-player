@@ -676,7 +676,6 @@ public class PsfPlaybackService extends Service
     	if (playList == null || shuffleList == null) {
     		return;
     	}
-    	Log.d(LOGTAG, "saveQueue");
     	// Save playlist and shufflelist
     	try {
         	FileOutputStream fos = openFileOutput(SavedListFileName, Context.MODE_PRIVATE);
@@ -686,10 +685,12 @@ public class PsfPlaybackService extends Service
 			oos.close();
 	    	fos.close();
 		} catch (Exception e) {
+			Log.e(LOGTAG, "unable to save queue");
 			e.printStackTrace();
 			return;
 		}
 
+    	Log.d(LOGTAG, "saveQueue");
     	// Save other parameters
         Editor ed = mPreferences.edit();
         ed.putInt("curpos", curPos);
@@ -699,14 +700,15 @@ public class PsfPlaybackService extends Service
 
     private void reloadQueue() {
     	// Get playlist and shufflelist
-    	Log.d(LOGTAG, "reloadQueue");
     	try {
     		FileInputStream fis = openFileInput(SavedListFileName);
     		ObjectInputStream ois = new ObjectInputStream (fis);
     		playList = (String[]) ois.readObject();
     		shuffleList = (int[]) ois.readObject();
     	} catch (Exception e) {
-    		e.printStackTrace();
+    		// It's ok if SavedListFileName does not exist
+    		// So don't print stacktrace here
+    		Log.d(LOGTAG, "unable to reload queue");
         	playList = null;
         	shuffleList = null;
         	curPos = 0;
@@ -714,6 +716,7 @@ public class PsfPlaybackService extends Service
         	return;
     	}
 
+    	Log.d(LOGTAG, "reloadQueue");
     	// Get other parameters
         playShuffle = mPreferences.getBoolean("shufflemode", false);
 
