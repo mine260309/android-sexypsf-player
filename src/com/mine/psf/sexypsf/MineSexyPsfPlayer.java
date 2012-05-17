@@ -51,7 +51,6 @@ public class MineSexyPsfPlayer {
 	
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
-	private static final int MINE_SEXYPSF_TRACK_END_THRESHOLD = 3;
 	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;

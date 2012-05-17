@@ -20,14 +20,16 @@ package com.mine.psf;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.LinkedList;
 import java.util.Random;
 
 import com.mine.psf.sexypsf.MineSexyPsfPlayer;
+import com.mine.psfplayer.R;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -45,6 +47,7 @@ import android.preference.PreferenceManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.RemoteViews;
 
 /**
  * Provides background psf playback capabilities, allowing the
@@ -54,12 +57,14 @@ public class PsfPlaybackService extends Service
 	implements MineSexyPsfPlayer.PsfPlayerState {
 
 	private static final String LOGTAG = "PsfPlaybackService";
-	private BroadcastReceiver mUnmountReceiver = null;
+    public static final int PLAYBACKSERVICE_STATUS = 1;
+
+    private BroadcastReceiver mUnmountReceiver = null;
 	private BroadcastReceiver mHeadsetReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
     private MineSexyPsfPlayer PsfPlayer;
-    
+
     public static final String CMDNAME = "command";
     public static final String CMDTOGGLEPAUSE = "togglepause";
     public static final String CMDSTOP = "stop";
@@ -119,7 +124,7 @@ public class PsfPlaybackService extends Service
         // Register headset unplug listener;
         registerHeadsetListener();
     }
-    
+
     @Override
     public void onDestroy() {
         // Check that we're not being destroyed while something is still playing.
@@ -336,10 +341,11 @@ public class PsfPlaybackService extends Service
 				Log.d(LOGTAG, "play");
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
 				notifyChange(PLAYSTATE_CHANGED);
+				notifyPlaying();
 			}
 		}
 	}
-	
+
 	private void open(int pos) {
 		if (pos < 0 || pos >= playList.length) {
 			Log.e(LOGTAG, "open pos out of range, pos: " + pos
@@ -669,7 +675,7 @@ public class PsfPlaybackService extends Service
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         Message msg = mDelayedStopHandler.obtainMessage();
         mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
-        stopForeground(true);
+        notifyPauseStop();
     }
 
     private void saveQueue() {
@@ -755,4 +761,27 @@ public class PsfPlaybackService extends Service
 			}
 		}
 	};
+
+	// Start foreground service and show the notification
+	private void notifyPlaying() {
+		Intent notificationIntent = new Intent(this, PsfPlaybackActivity.class);
+		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+		Notification notification = new Notification();
+		notification.icon = R.drawable.notification_psfplaying;
+		notification.contentIntent = contentIntent;
+		notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
+
+		RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.notification);
+		contentView.setImageViewResource(R.id.notification_image, R.drawable.notification_psfplaying);
+		contentView.setTextViewText(R.id.notification_track, getTrackName());
+		contentView.setTextViewText(R.id.notification_album, getAlbumName());
+		notification.contentView = contentView;
+        startForeground(PLAYBACKSERVICE_STATUS, notification);
+	}
+
+	// Stop foreground service and remove the notification
+	private void notifyPauseStop() {
+		stopForeground(true);
+	}
 }
