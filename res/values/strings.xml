@@ -34,8 +34,7 @@
     <string translatable="false" name="durationformatshort"><xliff:g id="format">%2$d:%5$02d</xliff:g></string>
     <!-- Do not translate. Duration format for duration >= 1 hour -->
     <string translatable="false" name="durationformatlong"><xliff:g id="format">%1$d:%3$02d:%5$02d</xliff:g></string>
-    
-    
+
     <!-- Dialog box title -->
     <string name="service_start_error_title">Playback problem</string>
     <!-- Dialog box message -->

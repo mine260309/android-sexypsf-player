@@ -58,8 +58,6 @@ public class PsfFileBrowserActivity extends Activity
 {
 	private static final String LOGTAG = "PsfFileBrowserActivity";
 
-//	private static final String DIR_PREFIX = "<dir> ";
-
 	private static final int ID_EXIT = 1;
 	private static final int ID_PLAY_ALL = 2;
 	private static final int ID_SHUFFLE_ALL = 3;
@@ -72,6 +70,7 @@ public class PsfFileBrowserActivity extends Activity
     private ServiceToken mToken;
     private ArrayList<String> playList;
     private TextView CurDirView;
+    private int focusListPosition = -1;
 
     /** Called when the activity is first created. */
     @Override
@@ -85,11 +84,20 @@ public class PsfFileBrowserActivity extends Activity
         // Prepare the music list
         MusicListView = (ListView) findViewById(R.id.psffilelist);
         CurDirView = (TextView) findViewById(R.id.directory_text);
-        String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
-        Log.d(LOGTAG, "Media Path is: " + mediaPath);
         
-        browseToDir(mediaPath);
-        
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            // If extras contains current list pos,
+            // we should focus on the item after connected to the service
+        	focusListPosition = extras.getInt(
+        			getString(R.string.extra_current_list_position));
+        }
+        else {
+        	String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
+	        Log.d(LOGTAG, "Media Path is: " + mediaPath);
+	        browseToDir(mediaPath);
+        }
+
 		MusicListView.setOnItemClickListener(new OnItemClickListener() {
 			    public void onItemClick(AdapterView<?> parent, View view,
 			        int position, long id) {
@@ -111,12 +119,11 @@ public class PsfFileBrowserActivity extends Activity
 			    }
 			  });
 		mToken = PsfUtils.bindToService(this, this);
-		
+
 		// Register listener on psf root dir change
 		SharedPreferences prefs = 
 			    PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
-
     }
 
     @Override
@@ -247,6 +254,31 @@ public class PsfFileBrowserActivity extends Activity
         IntentFilter f = new IntentFilter();
         f.addAction(PsfPlaybackService.META_CHANGED);
         registerReceiver(mTrackListener, new IntentFilter(f));
+        
+        if (focusListPosition != -1) {
+        	PsfPlaybackService psfService =
+        			((PsfPlaybackService.ServiceBinder)service).getService();
+
+        	String[] playList = psfService.getPlaylist();
+        	if (focusListPosition >= 0 && focusListPosition < playList.length) {
+	        	String mediaPath = playList[focusListPosition];
+	        	File mediaFile = new File(mediaPath);
+	        	mediaPath = mediaFile.getParent();
+	        	if (mediaPath != null) {
+			        //Log.d(LOGTAG, "Going to focus on " + mediaFile);
+			        browseToDir(mediaPath, focusListPosition);
+	        	}
+	        	else {
+	        		// Should never occur
+	        		Log.e(LOGTAG, "Media path incorrect: " + mediaFile);
+	        	}
+        	}
+        	else {
+        		// Occurs if the playlist is changed out of sudden
+        		Log.e(LOGTAG, "To focused item incorrect!");
+        	}
+        	focusListPosition = -1;
+        }
 	}
 
 	@Override
@@ -295,6 +327,14 @@ public class PsfFileBrowserActivity extends Activity
         CurDirView.setText(MusicListAdapter.getCurDir());
 	}
 	
+	private void browseToDir(String dir, int focusPosition) {
+		browseToDir(dir);
+		focusPosition += MusicListAdapter.getNumberDirs();
+		MusicListView.setSelection(focusPosition);
+		//Log.d(LOGTAG, "Verify if selection is correct: "
+		//		+ MusicListAdapter.getItem(focusPosition));
+	}
+	
 	private void handleFirstTimeRun() {
 		// Check if the psf root dir is set
 		// If not, probably it's the first time run,
@@ -310,7 +350,8 @@ public class PsfFileBrowserActivity extends Activity
 								int whichButton) {
 							// Direct to the psf root dir setting
 							Intent intent = new Intent(c, PsfSettingsActivity.class);
-							intent.putExtra("DirectShowDlg", true);
+							intent.putExtra(
+									getString(R.string.extra_direct_show_dir_dialog), true);
 							startActivity(intent);
 						}
 					}).create().show();

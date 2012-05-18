@@ -196,8 +196,12 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 
     private View.OnClickListener mQueueListener = new View.OnClickListener() {
         public void onClick(View v) {
+        	int curPlayingPos = mService.getPlaylistPosition();
             startActivity(
-                    new Intent(v.getContext(), PsfFileBrowserActivity.class));
+                new Intent(v.getContext(), PsfFileBrowserActivity.class)
+                .putExtra(
+                	getString(R.string.extra_current_list_position),
+                	curPlayingPos));
         }
     };
 

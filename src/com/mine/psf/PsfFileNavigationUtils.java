@@ -52,8 +52,7 @@ public class PsfFileNavigationUtils {
 
 	public static final String ROOT_PATH = "/";
 	private static final String DIR_PREFIX = "";
-
-//	public static String MEDIA_PATH;
+//	private static final String DIR_PREFIX = "<dir> ";
 
     // Return the type from the name
     // The name is either a psf/psf2 file, or a dir

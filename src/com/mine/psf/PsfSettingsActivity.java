@@ -34,7 +34,8 @@ public class PsfSettingsActivity extends PreferenceActivity {
 		
 		Bundle extras = getIntent().getExtras(); 
 		if (extras != null) {
-			boolean directShowPsfDialog = extras.getBoolean("DirectShowDlg");
+			boolean directShowPsfDialog = extras.getBoolean(
+					getString(R.string.extra_direct_show_dir_dialog));
 			if (directShowPsfDialog) {
 				PreferenceScreen screen = 
 						(PreferenceScreen) findPreference(

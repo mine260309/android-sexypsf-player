@@ -422,6 +422,19 @@ public class PsfPlaybackService extends Service
 		}
 	}
 
+	public int getPlaylistPosition() {
+    	if (playShuffle && shuffleList!=null) {
+    		return shuffleList[curPos];
+    	}
+    	else {
+    		return curPos;
+    	}
+	}
+
+	public String[] getPlaylist() {
+		return playList;
+	}
+
 	public void setShuffle(boolean shuffle) {
 		synchronized(this) {
 			playShuffle = shuffle;
