@@ -43,6 +43,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -71,6 +72,7 @@ public class PsfFileBrowserActivity extends Activity
     private ArrayList<String> playList;
     private TextView CurDirView;
     private int focusListPosition = -1;
+    private int mStepsBack; // handle BACK key press, up one level dir instead of exit the activity
 
     /** Called when the activity is first created. */
     @Override
@@ -79,7 +81,8 @@ public class PsfFileBrowserActivity extends Activity
         super.onCreate(savedInstanceState);
         c = this;
         handleFirstTimeRun();
-        
+
+        mStepsBack = 0;
         setContentView(R.layout.psffile_browser_activity);
         // Prepare the music list
         MusicListView = (ListView) findViewById(R.id.psffilelist);
@@ -106,6 +109,18 @@ public class PsfFileBrowserActivity extends Activity
 			    	File testDir = new File(filePath);
 			    	if (testDir.isDirectory()) {
 			    		Log.d(LOGTAG, "pick a directory: " + filePath);
+			    		// Check the if it's go up or down level of dir
+			    		String curDir = MusicListAdapter.getCurDir();
+			    		if (filePath.compareTo(curDir) < 0) {
+			    			// up one level
+			    			mStepsBack--;
+			    			Log.d(LOGTAG, "up one level: " + mStepsBack);
+			    		}
+			    		else {
+			    			// down one level
+			    			mStepsBack++;
+			    			Log.d(LOGTAG, "down one level: " + mStepsBack);
+			    		}
 			    		browseToDir(filePath);
 			    	}
 			    	else {
@@ -231,6 +246,19 @@ public class PsfFileBrowserActivity extends Activity
 						}).create();
 	}
 
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			if (mStepsBack > 0) {
+				upOneLevel();
+				return true;
+			}
+		}
+		
+		return super.onKeyDown(keyCode, event);
+	}
+
     private void ExitApp() {
     	PsfUtils.quit();
     	finish();
@@ -315,6 +343,7 @@ public class PsfFileBrowserActivity extends Activity
 			String key) {
 		if (key == getString(R.string.key_psf_root_dir)) {
 			Log.d(LOGTAG, "psf root changed, refresh list...");
+			mStepsBack = 0;
 			browseToDir(PsfDirectoryChoosePreference.getPsfRootDir(c));
 		}
 	}
@@ -333,6 +362,19 @@ public class PsfFileBrowserActivity extends Activity
 		MusicListView.setSelection(focusPosition);
 		//Log.d(LOGTAG, "Verify if selection is correct: "
 		//		+ MusicListAdapter.getItem(focusPosition));
+	}
+	
+	private void upOneLevel() {
+		File curPath = new File(MusicListAdapter.getCurDir());
+		String upLevel = curPath.getParent();
+		mStepsBack--;
+		if (upLevel != null) {
+			browseToDir(upLevel);
+		}
+		else {
+			// Should never occur
+			Log.e(LOGTAG, "upOneLevel, parent null");
+		}
 	}
 	
 	private void handleFirstTimeRun() {
