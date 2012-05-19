@@ -42,6 +42,8 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.text.method.LinkMovementMethod;
+import android.text.util.Linkify;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -164,11 +166,11 @@ public class PsfFileBrowserActivity extends Activity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        menu.add(0, ID_EXIT, 0, R.string.menu_exit).setIcon(R.drawable.ic_menu_exit);
         menu.add(0, ID_PLAY_ALL, 0, R.string.play_all).setIcon(R.drawable.ic_menu_play_clip);
         menu.add(0, ID_SHUFFLE_ALL, 0, R.string.shuffle_all).setIcon(R.drawable.ic_menu_shuffle);
-        menu.add(1, ID_SETTINGS, 0, R.string.settings).setIcon(R.drawable.ic_settings);
-        menu.add(1, ID_ABOUT, 0, R.string.about).setIcon(R.drawable.ic_about);
+        menu.add(0, ID_SETTINGS, 0, R.string.settings).setIcon(R.drawable.ic_settings);
+        menu.add(0, ID_ABOUT, 0, R.string.about).setIcon(R.drawable.ic_about);
+        menu.add(0, ID_EXIT, 0, R.string.menu_exit).setIcon(R.drawable.ic_menu_exit);
         return true;
     }
 
@@ -218,7 +220,7 @@ public class PsfFileBrowserActivity extends Activity
 	@Override
 	protected Dialog onCreateDialog(int id) {
 		// show dialog according to the id
-		String msg;
+		final String msg;
 		if (id == ID_ABOUT) {
     		// Get version code
     		String versionString="";
@@ -236,7 +238,15 @@ public class PsfFileBrowserActivity extends Activity
 			Log.e(LOGTAG, "Unknown dialog id");
 			msg = "";
 		}
-		return new AlertDialog.Builder(this).setMessage(msg)
+
+		final TextView msgView = new TextView(this);
+		msgView.setText(msg);
+		msgView.setAutoLinkMask(Linkify.ALL);
+		msgView.setTextAppearance(this, android.R.style.TextAppearance_Medium);
+		msgView.setMovementMethod(LinkMovementMethod.getInstance());
+
+		return new AlertDialog.Builder(this).setView(msgView)
+				.setCancelable(true)
 				.setPositiveButton(android.R.string.ok,
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog,

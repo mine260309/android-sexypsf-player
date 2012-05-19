@@ -43,7 +43,7 @@ public class PsfUtils {
             mWrappedContext = context;
         }
     }
-    
+
     public static PsfPlaybackService sService = null;
     private static HashMap<Context, ServiceBinder> sConnectionMap =
     	new HashMap<Context, ServiceBinder>();

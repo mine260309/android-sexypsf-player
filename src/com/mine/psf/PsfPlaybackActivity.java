@@ -52,7 +52,7 @@ import android.widget.Toast;
 public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 		OnLongClickListener {
 	private static final String LOGTAG = "PsfPlaybackActivity";
-	
+
     private boolean mOneShot = false;
     private boolean mSeeking = false;
     private boolean mDeviceHasDpad;
