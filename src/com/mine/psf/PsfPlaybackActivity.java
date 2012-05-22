@@ -208,12 +208,19 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     private void doPauseResume() {
     	Log.d(LOGTAG, "doPauesResume");
     	if(mService != null) {
-    		if (mService.isPlaying()) {
-    	    	Log.d(LOGTAG, "call pause");
-    			mService.pause();
-    		} else {
-    	    	Log.d(LOGTAG, "call play");
-    			mService.play();
+    		if (mService.isActive()) {
+    			// psf already opened
+	    		if (mService.isPlaying()) {
+	    	    	Log.d(LOGTAG, "call pause");
+	    			mService.pause();
+	    		} else {
+	    	    	Log.d(LOGTAG, "call play");
+	    			mService.play();
+	    		}
+    		}
+    		else {
+    			// psf not opened
+    			mService.play(mService.getPlaylistPosition());
     		}
     	}
     }

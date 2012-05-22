@@ -195,7 +195,7 @@ public class MineSexyPsfPlayer {
 	public boolean isActive() {
 		return PlayerState != PsfPlayerState.STATE_IDLE;
 	}
-	
+
 	public int GetPosition() {
 		if (isActive()) {
 			// The native position is the decoded position
@@ -217,7 +217,7 @@ public class MineSexyPsfPlayer {
 			return 0;
 		}
 	}
-	
+
 	public String GetArtist() {
 		if (isActive()) {
 			return PsfFileInfo.artist;
@@ -226,7 +226,7 @@ public class MineSexyPsfPlayer {
 			return "";
 		}
 	}
-	
+
 	public String GetAlbum() {
 		if (isActive()) {
 			return PsfFileInfo.game;

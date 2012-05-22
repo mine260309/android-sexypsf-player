@@ -41,4 +41,10 @@
         android:layout_toRightOf="@id/notification_image"
         android:layout_below="@+id/notification_track"
         style="@style/NotificationText" />
+    <!-- The 'Next' button, which only works after v11 -->
+    <ImageButton android:id="@+id/notification_next_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        style="@android:style/MediaButton.Next" />
 </RelativeLayout>

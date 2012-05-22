@@ -216,7 +216,7 @@ public class PsfPlaybackService extends Service
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         if (intent != null) {
             String action = intent.getAction();
-            String cmd = intent.getStringExtra("command");
+            String cmd = intent.getStringExtra(CMDNAME);
             Log.v(LOGTAG, "onStartCommand " + action + " / " + cmd);
 
             if (CMDTOGGLEPAUSE.equals(cmd) || TOGGLEPAUSE_ACTION.equals(action)) {
@@ -229,6 +229,8 @@ public class PsfPlaybackService extends Service
                 pause();
             } else if (CMDSTOP.equals(cmd)) {
                 stop();
+            } else if (CMDNEXT.equals(cmd)) {
+            	next();
             }
         }
 
@@ -245,7 +247,7 @@ public class PsfPlaybackService extends Service
             switch (msg.what) {
                 case STATE_STOPPED:
                 	Log.v(LOGTAG, "get STOPPED message");
-                	next();
+                	autoNext();
                     //notifyChange(PLAYBACK_COMPLETE);
                     break;
                 //case RELEASE_WAKELOCK:
@@ -319,6 +321,7 @@ public class PsfPlaybackService extends Service
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "stop");
 				PsfPlayer.Stop();
+                gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
 			}
 		}
@@ -382,7 +385,7 @@ public class PsfPlaybackService extends Service
 			Log.d(LOGTAG, "next");
 			int pos = goNext();
 			if (pos == -1) {
-				Log.e(LOGTAG, "No Next Track!");
+				Log.d(LOGTAG, "No Next Track!");
 				return;
 			}
 			boolean ret;
@@ -448,14 +451,14 @@ public class PsfPlaybackService extends Service
 		}
 		return false;
 	}
-	
+
 	public boolean isActive() {
 		if (PsfPlayer != null) {
 			return PsfPlayer.isActive();
 		}
 		return false;
 	}
-	
+
 	public long duration() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -464,6 +467,7 @@ public class PsfPlaybackService extends Service
 			return 0;
 		}
 	}
+
 	public long position() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -472,6 +476,7 @@ public class PsfPlaybackService extends Service
 			return 0;
 		}
 	}
+
 	public String getTrackName() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -480,6 +485,7 @@ public class PsfPlaybackService extends Service
 			return "";
 		}
 	}
+
 	public String getAlbumName() {
 		synchronized(this) {
 			if (PsfPlayer != null) {
@@ -488,7 +494,7 @@ public class PsfPlaybackService extends Service
 			return "";
 		}
 	}
-	
+
     public String getArtistName() {
 		if (PsfPlayer != null) {
 			return PsfPlayer.GetArtist();
@@ -634,12 +640,12 @@ public class PsfPlaybackService extends Service
     			shuffleList[i] = i;
     		}
     	}
-    	StringBuilder sb = new StringBuilder();
-    	for (int i = 0; i < playList.length; ++i) {
-    		sb.append(shuffleList[i]);
-    		sb.append(",");
-    	}
-    	Log.d(LOGTAG, "GetShuffleList: " + sb.toString());
+//    	StringBuilder sb = new StringBuilder();
+//    	for (int i = 0; i < playList.length; ++i) {
+//    		sb.append(shuffleList[i]);
+//    		sb.append(",");
+//    	}
+//    	Log.d(LOGTAG, "GetShuffleList: " + sb.toString());
     }
     
     private int goNext() {
@@ -671,6 +677,21 @@ public class PsfPlaybackService extends Service
     		return --curPos;
     	}
     }
+
+	/** Go to next music when a psf play to the end
+	 *  If it's the last item in the playlist, stop */
+	private void autoNext() {
+		synchronized(this) {
+	    	if (curPos + 1 >= playList.length) {
+				Log.d(LOGTAG, "No Next Track, stop");
+	    		stop();
+	    		return;
+	    	}
+	    	else {
+	    		next();
+	    	}
+		}
+	}
 
 	private final IBinder binder = new ServiceBinder(this);
 	
@@ -779,7 +800,6 @@ public class PsfPlaybackService extends Service
 	private void notifyPlaying() {
 		Intent notificationIntent = new Intent(this, PsfPlaybackActivity.class);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-
 		Notification notification = new Notification();
 		notification.icon = R.drawable.notification_psfplaying;
 		notification.contentIntent = contentIntent;
@@ -789,8 +809,15 @@ public class PsfPlaybackService extends Service
 		contentView.setImageViewResource(R.id.notification_image, R.drawable.notification_psfplaying);
 		contentView.setTextViewText(R.id.notification_track, getTrackName());
 		contentView.setTextViewText(R.id.notification_album, getAlbumName());
+
+		// Set next button, seems only work after v11
+		Intent nextTrackIntent = new Intent(this, PsfPlaybackService.class);
+		nextTrackIntent.putExtra(CMDNAME, CMDNEXT);
+		PendingIntent nextTrackPendingIntent = PendingIntent.getService(this, 0, nextTrackIntent, 0);
+		contentView.setOnClickPendingIntent(R.id.notification_next_btn, nextTrackPendingIntent);
+
 		notification.contentView = contentView;
-        startForeground(PLAYBACKSERVICE_STATUS, notification);
+		startForeground(PLAYBACKSERVICE_STATUS, notification);
 	}
 
 	// Stop foreground service and remove the notification

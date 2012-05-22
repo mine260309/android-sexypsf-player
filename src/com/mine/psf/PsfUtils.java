@@ -51,7 +51,7 @@ public class PsfUtils {
     public static ServiceToken bindToService(Activity context) {
         return bindToService(context, null);
     }
-    
+
     public static ServiceToken bindToService(Activity context,
     		ServiceConnection callback) {
         Activity realActivity = context.getParent();
