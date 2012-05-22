@@ -57,6 +57,7 @@ public class PsfFileNavigationUtils {
     // Return the type from the name
     // The name is either a psf/psf2 file, or a dir
     public static int GetFileType(String name) {
+    	name = name.toLowerCase();
     	if (name.endsWith(".psf") || name.endsWith(".minipsf")) {
     		return PsfFileType.TYPE_PSF;
     	} else if (name.endsWith(".psf2")) {
@@ -232,6 +233,7 @@ public class PsfFileNavigationUtils {
 
     public static FilenameFilter PsfFilter = new FilenameFilter() {
         public boolean accept(File dir, String name) {
+        	name = name.toLowerCase();
             return (name.endsWith(".psf") || name.endsWith(".minipsf"));
         }
     };
