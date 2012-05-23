@@ -48,7 +48,7 @@ public class MineSexyPsfPlayer {
 	public static final int PSFPAUSE=1;
 	
 	private static final String LOGTAG = "MinePsfPlayer";
-	
+	private static final int UNTIMED_TRACK_DURATION = 3*60*1000;
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
 	private AudioTrack PsfAudioTrack = null;
@@ -56,6 +56,7 @@ public class MineSexyPsfPlayer {
 	private boolean threadShallExit;
 	private PsfInfo PsfFileInfo;
 	private boolean isAudioTrackOpened;
+	private boolean isPsfUntimed; // some psf has no duration
 	private int PlayerState;
 	private Handler mHandler;
 	private int SampleDataSizePlayed;
@@ -87,14 +88,25 @@ public class MineSexyPsfPlayer {
 		Log.d(LOGTAG, "call AudioTrack.flush()");
 		PsfAudioTrack.flush();
 		isAudioTrackOpened = false;
+		isPsfUntimed = false;
 
 		// 2) Open psf file
 		ret = MineSexyPsfLib.sexypsfopen(psfFile);
 		if (ret) {
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
-			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
-			//		", duration: " + PsfFileInfo.duration);
-			
+			Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
+					", duration: " + PsfFileInfo.duration);
+			if (PsfFileInfo.duration <= 0) {
+				// For untimed tracks, use default duration 
+				isPsfUntimed = true;
+				PsfFileInfo.duration = UNTIMED_TRACK_DURATION;
+				Log.d(LOGTAG, "Untimed track");
+			}
+			if (PsfFileInfo.title.equals("")) {
+				// For untitled tracks, use filename as title
+				PsfFileInfo.title = psfFile.substring(psfFile.lastIndexOf('/')+1);
+				Log.d(LOGTAG, "Untitled: " + PsfFileInfo.title);
+			}
 			setPsfState(PsfPlayerState.STATE_OPENED);
 			// 3) Prepare get/put threads
 			CircularBuffer.reInit();
@@ -161,6 +173,7 @@ public class MineSexyPsfPlayer {
 		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");
 		PsfAudioTrack.stop();
 		isAudioTrackOpened = false;
+		isPsfUntimed = false;
 		MineSexyPsfLib.sexypsfstop();
 		try {
 			CircularBuffer.destroy();
@@ -268,8 +281,6 @@ public class MineSexyPsfPlayer {
 	        		// If the returned data is less than requested data
 	        		// Either the playback is end, we shall let the play_thread exit and notify end
 	        		// Or the playback is interrupted, we shall not set end flag
-	        		// FIXME: a tricky track here, compare the current pos and duration to 
-	        		// check if it's play to the end
 	        		// TODO: remove below log
 	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", check if play to end");
 	        		// If the state is idle, it means Stop() is called
@@ -336,6 +347,18 @@ public class MineSexyPsfPlayer {
 					CircularBuffer.GetReadBufferDone(chunk.len);
 					//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
 
+					// TODO: A better solution may come up, for now it's a hack.
+					// Handle untimed track: check the position,
+					// if it exceeds the duration, treat it as end
+					if (isPsfUntimed) {
+						if (GetPositionFromSampleDataSize() >=
+								PsfFileInfo.duration / 1000)
+						{
+							Log.d(LOGTAG, "End of untimed track");
+							CircularBuffer.setAudioBufferEnd();
+							threadShallExit = true;
+						}
+					}
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
 						Log.d(LOGTAG, "call AudioTrack.play()");
 						PsfAudioTrack.play();

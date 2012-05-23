@@ -86,9 +86,33 @@ class PsfInfo {
 		this.psfby = psfby;
 		this.comment = comment;
 		this.copyright = copyright;
+		postInit();
 	}
-	public PsfInfo(int test) {
-		// Empty
-		duration = test;
+	// Verify and make sure no null String is returned
+	private void postInit() {
+		if (title == null) {
+			title = "";
+		}
+		if (artist == null) {
+			artist = "";
+		}
+		if (game == null) {
+			game = "";
+		}
+		if (year == null) {
+			year = "";
+		}
+		if (genre == null) {
+			genre = "";
+		}
+		if (psfby == null) {
+			psfby = "";
+		}
+		if (comment == null) {
+			comment = "";
+		}
+		if (copyright == null) {
+			copyright = "";
+		}
 	}
 }
