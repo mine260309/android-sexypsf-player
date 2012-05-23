@@ -116,12 +116,12 @@ public class PsfFileBrowserActivity extends Activity
 			    		if (filePath.compareTo(curDir) < 0) {
 			    			// up one level
 			    			mStepsBack--;
-			    			Log.d(LOGTAG, "up one level: " + mStepsBack);
+			    			//Log.d(LOGTAG, "up one level: " + mStepsBack);
 			    		}
 			    		else {
 			    			// down one level
 			    			mStepsBack++;
-			    			Log.d(LOGTAG, "down one level: " + mStepsBack);
+			    			//Log.d(LOGTAG, "down one level: " + mStepsBack);
 			    		}
 			    		browseToDir(filePath);
 			    	}

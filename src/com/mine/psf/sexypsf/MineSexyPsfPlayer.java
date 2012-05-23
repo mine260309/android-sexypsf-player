@@ -85,7 +85,7 @@ public class MineSexyPsfPlayer {
 	        		MINE_AUDIO_BUFFER_PUT_GET_LEN,
 	        		AudioTrack.MODE_STREAM);
 		}
-		Log.d(LOGTAG, "call AudioTrack.flush()");
+		//Log.d(LOGTAG, "call AudioTrack.flush()");
 		PsfAudioTrack.flush();
 		isAudioTrackOpened = false;
 		isPsfUntimed = false;
@@ -94,8 +94,8 @@ public class MineSexyPsfPlayer {
 		ret = MineSexyPsfLib.sexypsfopen(psfFile);
 		if (ret) {
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
-			Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
-					", duration: " + PsfFileInfo.duration);
+			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
+			//		", duration: " + PsfFileInfo.duration);
 			if (PsfFileInfo.duration <= 0) {
 				// For untimed tracks, use default duration 
 				isPsfUntimed = true;
@@ -170,7 +170,7 @@ public class MineSexyPsfPlayer {
 		}
 		threadShallExit = true;
 		setPsfState(PsfPlayerState.STATE_IDLE);
-		Log.d(LOGTAG, "In Stop() AudioTrack.stop()");
+		Log.d(LOGTAG, "Stop");
 		PsfAudioTrack.stop();
 		isAudioTrackOpened = false;
 		isPsfUntimed = false;
@@ -282,7 +282,7 @@ public class MineSexyPsfPlayer {
 	        		// Either the playback is end, we shall let the play_thread exit and notify end
 	        		// Or the playback is interrupted, we shall not set end flag
 	        		// TODO: remove below log
-	        		Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", check if play to end");
+	        		//Log.d(LOGTAG, "sexypsfputaudiodataindex return " + ret + ", check if play to end");
 	        		// If the state is idle, it means Stop() is called
 	        		if (getPsfState() != PsfPlayerState.STATE_IDLE) {
 	        			CircularBuffer.setAudioBufferEnd();
@@ -301,7 +301,7 @@ public class MineSexyPsfPlayer {
 
 				//Log.d(LOGTAG, "Put data to buffer: " + (counter++) + " len: " + ret);
 	        }
-			Log.d(LOGTAG, "PsfAudioGetThread exit!");
+			//Log.d(LOGTAG, "PsfAudioGetThread exit!");
 		}
 	}
 
@@ -360,7 +360,7 @@ public class MineSexyPsfPlayer {
 						}
 					}
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
-						Log.d(LOGTAG, "call AudioTrack.play()");
+						//Log.d(LOGTAG, "call AudioTrack.play()");
 						PsfAudioTrack.play();
 						isAudioTrackOpened = true;
 						setPsfState(PsfPlayerState.STATE_PLAYING);
@@ -399,8 +399,6 @@ public class MineSexyPsfPlayer {
 //						waitPsfEnd();
 					}
 				} catch (InterruptedException e1) {}
-				// TODO: should I call audiotrack's stop here?
-				Log.d(LOGTAG, "call AudioTrack.stop()");
 				PsfAudioTrack.stop();
 				PsfAudioTrack.setStereoVolume(0, 0);
 				notifyStateChange(PsfPlayerState.STATE_STOPPED);
@@ -408,7 +406,7 @@ public class MineSexyPsfPlayer {
 			else {
 				Log.d(LOGTAG, "Interrupted");
 			}
-			Log.d(LOGTAG, "PsfAudioPutThread exit!");
+			//Log.d(LOGTAG, "PsfAudioPutThread exit!");
 		}
 	}
 

@@ -152,7 +152,7 @@ public class PsfUtils {
         if (nowPlayingView == null) {
             return;
         }
-        if (PsfUtils.sService != null /* TODO && PsfUtils.sService.getAudioId() != -1*/) {
+        if (PsfUtils.sService != null) {
         	TextView title = (TextView) nowPlayingView.findViewById(R.id.title);
         	TextView artist = (TextView) nowPlayingView.findViewById(R.id.artist);
         	title.setText(PsfUtils.sService.getTrackName());

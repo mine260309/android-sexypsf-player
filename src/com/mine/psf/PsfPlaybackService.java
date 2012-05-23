@@ -525,8 +525,8 @@ public class PsfPlaybackService extends Service
     		return;
     	}
     	Log.d(LOGTAG, "remove file " + playList[pos] + " from list, pos: " + pos);
-    	Log.d(LOGTAG, "Before removing:");
-    	dumpPlayList();
+    	//Log.d(LOGTAG, "Before removing:");
+    	//dumpPlayList();
 
     	String[] newList = new String[playList.length-1];
     	int[] newShuffleList = new int[shuffleList.length-1];
@@ -551,10 +551,10 @@ public class PsfPlaybackService extends Service
     	}
     	playList = newList;
     	shuffleList = newShuffleList;
-    	Log.d(LOGTAG, "After removing:");
-    	dumpPlayList();
+    	//Log.d(LOGTAG, "After removing:");
+    	//dumpPlayList();
     }
-    
+/*
     private void dumpPlayList() {
     	Log.d(LOGTAG, "Dump Playlist...");
     	StringBuffer sb = new StringBuffer();
@@ -564,7 +564,7 @@ public class PsfPlaybackService extends Service
     	}
     	Log.d(LOGTAG, "Shuffle List: " + sb.toString());
     }
-
+*/
 	/**
      * Registers an intent to listen for ACTION_MEDIA_EJECT notifications.
      * The intent will call closeExternalStorageFiles() if the external media

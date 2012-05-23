@@ -206,15 +206,15 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     };
 
     private void doPauseResume() {
-    	Log.d(LOGTAG, "doPauesResume");
+    	//Log.d(LOGTAG, "doPauesResume");
     	if(mService != null) {
     		if (mService.isActive()) {
     			// psf already opened
 	    		if (mService.isPlaying()) {
-	    	    	Log.d(LOGTAG, "call pause");
+	    	    	//Log.d(LOGTAG, "call pause");
 	    			mService.pause();
 	    		} else {
-	    	    	Log.d(LOGTAG, "call play");
+	    	    	//Log.d(LOGTAG, "call play");
 	    			mService.play();
 	    		}
     		}
@@ -266,7 +266,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 
     @Override
     public void onNewIntent(Intent intent) {
-    	Log.d(LOGTAG, "onNewIntent");
+    	//Log.d(LOGTAG, "onNewIntent");
         setIntent(intent);
         mOneShot = intent.getBooleanExtra("oneshot", false);
     }
@@ -274,7 +274,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     @Override
     public void onResume() {
         super.onResume();
-    	Log.d(LOGTAG, "onResume");
+    	//Log.d(LOGTAG, "onResume");
         updateTrackInfo();
         setPauseButtonImage();
     }
@@ -290,7 +290,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.v(LOGTAG, "mStatusListener receive: " + action);
+            // Log.v(LOGTAG, "mStatusListener receive: " + action);
             if (action.equals(PsfPlaybackService.PLAYBACK_COMPLETE)) {
                 if (mOneShot) {
                     finish();
@@ -310,7 +310,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     };
 
     private void setPauseButtonImage() {
-    	Log.d(LOGTAG, "setPauseButtonImage");
+    	// Log.d(LOGTAG, "setPauseButtonImage");
     	if (mService != null && mService.isPlaying()) {
     		mPauseButton.setImageResource(android.R.drawable.ic_media_pause);
     	} else {
