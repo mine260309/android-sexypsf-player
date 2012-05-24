@@ -1,6 +1,7 @@
 # Android Sexypsf Player
 
 This project is to provide a PlayStation? .psf file Player on Android. It will use sexypsf as the core "decoder" to play the .psf file.
+For history reason, issues are tracked at Google Code https://code.google.com/p/android-sexypsf-player/issues/list
 
 **PSF** is a sound data file format ripped directly from video games on PlayStation?. Detailed information can be get from http://en.wikipedia.org/wiki/Portable_Sound_Format.
 
