@@ -25,11 +25,13 @@ public class MineSexyPsfLib {
 	static {
 		System.loadLibrary("sexypsf");
 	}
+	static public final int TYPE_PSF = 1;
+	static public final int TYPE_PSF2 = 2;
 
 	/** The native function implemented by sexypsf.
 	 * It's used to open a psf file.
 	 */
-	public static native boolean sexypsfopen(String filename);
+	public static native boolean sexypsfopen(String filename, int type);
 
 	/** Native function to play a opened psf file */
 	public static native void sexypsfplay();

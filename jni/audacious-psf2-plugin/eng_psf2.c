@@ -67,18 +67,6 @@
 #define ELF32_R_SYM(val)                ((val) >> 8)
 #define ELF32_R_TYPE(val)               ((val) & 0xff)
 
-// TODO: MINE put stop_flag here for now, this should be moved to somefile like android_psf2.c
-bool_t stop_flag;
-int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
-{
-	return AO_SUCCESS;
-}
-
-void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
-{
-
-}
-
 static corlett_t	*c = NULL;
 
 // main RAM

@@ -72,8 +72,10 @@ SIDE EFFECTS:
 ==================================================================================================*/
 jboolean Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfopen( JNIEnv* env,
                                              jobject thiz,
-                                             jstring filename)
+                                             jstring filename,
+                                             jint psftype)
 {
+	PSF_TYPE type = -1;
     const char* name = jstringTostring(env, filename);
 #ifdef DEBUG_DUMP_PCM
     char* dump_file_name = (char*)malloc(strlen(name)+5);
@@ -90,7 +92,13 @@ jboolean Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfopen( JNIEnv* env,
         free(dump_file_name);
     }
 #endif
-    return psf_open(name);
+	if (psftype == 1) {
+		type = TYPE_PSF;
+	}
+	else if (psftype == 2) {
+		type = TYPE_PSF2;
+	}
+    return psf_open(name, type);
 }
 
 

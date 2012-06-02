@@ -91,7 +91,7 @@ public class MineSexyPsfPlayer {
 		isPsfUntimed = false;
 
 		// 2) Open psf file
-		ret = MineSexyPsfLib.sexypsfopen(psfFile);
+		ret = MineSexyPsfLib.sexypsfopen(psfFile, MineSexyPsfLib.TYPE_PSF);
 		if (ret) {
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
 			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +

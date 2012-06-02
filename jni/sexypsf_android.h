@@ -39,23 +39,28 @@ Lei Yu                      08/30/2009	    Initial Creation, basic playback for 
 /*================================================================================================
                                          ENUMS
 ==================================================================================================*/
-typedef enum{
+typedef enum {
 	CMD_NONE = 0x00,
 	CMD_SEEK = 0x01,
 	CMD_STOP = 0x02
-}PSF_CMD;
+} PSF_CMD;
 
-typedef enum{
+typedef enum {
 	PSF_STATUS_IDLE,
 	PSF_STATUS_STOPPED,
 	PSF_STATUS_PLAYING,
 	PSF_STATUS_PAUSE
-}PSF_STATUS;
+} PSF_STATUS;
 
-typedef enum{
+typedef enum {
     PSF_SEEK_SET,
     PSF_SEEK_CUR
-}PSF_SEEK_MODE;
+} PSF_SEEK_MODE;
+
+typedef enum {
+	TYPE_PSF,
+	TYPE_PSF2
+} PSF_TYPE;
 
 /*================================================================================================
                                          DEFINES
@@ -111,18 +116,19 @@ DESCRIPTION: open a psf file
 
 ARGUMENTS PASSED:
    file_name - file name string, NULL terminated
+   type - the psf type, either PSF or PSF2
 
 RETURN VALUE:
-   None
+   TRUE if open successful, FALSE otherwise
 
 DEPENDENCIES:
-   None
+   The PSF_TYPE should be correct.
 
 SIDE EFFECTS:
    This function will not return until the playback is done or psf_stop is called.
 
 ==================================================================================================*/
-BOOL psf_open(const char* file_name);
+BOOL psf_open(const char* file_name, PSF_TYPE type);
 
 /*==================================================================================================
 

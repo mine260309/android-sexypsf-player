@@ -909,7 +909,7 @@ void ps2_hw_slice(void)
 	}
 }
 
-static int fcnt = 0;
+//static int fcnt = 0;
 
 // psf playback is handled in sexypsf lib
 #if 0

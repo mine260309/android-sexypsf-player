@@ -43,6 +43,8 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 //#define DEBUG_DUMP_PCM
 
 #include "sexypsf_android.h"
+#include "ao.h"
+#include "eng_protos.h"
 
 #ifdef DEBUG_DUMP_PCM
   // dump the decoded audio data
@@ -72,6 +74,7 @@ static int put_index=0, get_index=0, free_size = 0;             //the index used
 volatile PSF_CMD    global_command;             //the global command
 volatile PSF_STATUS global_psf_status;          //the global status
 int                 global_seektime = 0;        //the global seek time
+PSF_TYPE			global_psf_type = -1;
 
 static int mutex_initialized = FALSE;
 static pthread_mutex_t audio_buf_mutex;
@@ -382,6 +385,7 @@ void sexypsf_init()
 	global_seektime = 0;
 	global_command = CMD_NONE;
     global_psf_status = PSF_STATUS_IDLE;
+	global_psf_type = -1;
     thread_running = 0;
 }
 /*==================================================================================================
@@ -434,7 +438,7 @@ SIDE EFFECTS:
    None
 
 ==================================================================================================*/
-BOOL psf_open(const char* file_name)
+BOOL psf_open(const char* file_name, PSF_TYPE type)
 {
 #ifdef DEBUG_DUMP_PCM
     char* dump_file_name = (char*)malloc(strlen(file_name)+10);
@@ -453,19 +457,27 @@ BOOL psf_open(const char* file_name)
         free(dump_file_name);
     }
 #endif
-	if (PSFInfo!= NULL) {
-		sexy_freepsfinfo(PSFInfo);
-		PSFInfo = NULL;
+    if (type == TYPE_PSF) {
+		if (PSFInfo!= NULL) {
+			sexy_freepsfinfo(PSFInfo);
+			PSFInfo = NULL;
+		}
+		if(!(PSFInfo=sexy_load((char*)file_name)))
+		{
+		    debug_printf("%s: open file %s fail!!\n", __FUNCTION__, file_name);
+		    handle_error();
+		    return FALSE;
+		}
 	}
-    if(!(PSFInfo=sexy_load((char*)file_name)))
-    {
-        debug_printf("%s: open file %s fail!!\n", __FUNCTION__, file_name);
-        handle_error();
-        return FALSE;
-    }
-    stored_filename = file_name;
-    sexypsf_init();
-
+	else if (type == TYPE_PSF2) {
+		// TODO: implement psf2 support
+	}
+	else {
+		return FALSE;
+	}
+	stored_filename = file_name;
+	sexypsf_init();
+	global_psf_type = type;
     debug_printf("%s: open file %s success.\n", __FUNCTION__, file_name);
     return TRUE;
 }
@@ -473,8 +485,15 @@ BOOL psf_open(const char* file_name)
 
 void psf_play()
 {
+	int state = -1;
     debug_printf("%s: playing file %s...\n", __FUNCTION__, stored_filename);
-    if (pthread_create(&play_thread,0,playloop,0) == 0 ){
+	if (global_psf_type == TYPE_PSF) {
+		state = pthread_create(&play_thread,0,playloop,0);
+	}
+	else if (global_psf_type == TYPE_PSF2) {
+		// TODO: psf2
+	}
+    if (state == 0 ){
     	thread_running = 1;
     }
     else {
@@ -523,6 +542,7 @@ void psf_stop()
     	pthread_join(play_thread,0);
     	thread_running = 0;
     }
+	//TODO: check how to stop psf2
 }
 
 /*==================================================================================================
@@ -559,6 +579,7 @@ void psf_pause(BOOL pause)
 //printf("resume audio\n");
         global_psf_status = PSF_STATUS_PLAYING;
     }
+	//TODO: check how to pause psf2
 }
 
 /*==================================================================================================
@@ -603,23 +624,38 @@ void psf_seek(int seek, PSF_SEEK_MODE mode)
                 //now global_seektime is a offset from current time
                 if(global_seektime>=0)
                 {
-                    global_seektime = my_sexy_seek(global_seektime); //now global_seektime is the offset from the start time
+					if (global_psf_type == TYPE_PSF) {
+                    	global_seektime = my_sexy_seek(global_seektime); //now global_seektime is the offset from the start time
+					}
+					else if (global_psf_type == TYPE_PSF2) {
+						// TODO: psf2
+					}
                     global_command = CMD_NONE;
                 }
                 else    // Negative time, we must close & restart the playback
                 {
-                    global_seektime = my_sexy_seek(global_seektime);
-                    sexy_stop();
+					if (global_psf_type == TYPE_PSF) {
+		                global_seektime = my_sexy_seek(global_seektime);
+		                sexy_stop();
+					}
+					else if (global_psf_type == TYPE_PSF2) {
+						// TODO: psf2
+					}
                 }
             }
             break;
             case PSF_SEEK_SET:
             {
-                if(sexy_seek(global_seektime) == 0)
-                {//Negative time!  Must make a C time machine.
-                   sexy_stop();
-                   return;
-                }
+				if (global_psf_type == TYPE_PSF) {
+		            if(sexy_seek(global_seektime) == 0)
+		            {//Negative time!  Must make a C time machine.
+		               sexy_stop();
+		               return;
+		            }
+				}
+				else if (global_psf_type == TYPE_PSF2) {
+					// TODO: psf2
+				}
             }
             break;
             default:
@@ -793,7 +829,14 @@ Notes:
 ==================================================================================================*/
 int psf_get_pos()
 {
-  return my_sexy_get_cur_time();
+	int ret = 0;
+	if (global_psf_type == TYPE_PSF) {
+		ret = my_sexy_get_cur_time();
+	}
+	else if (global_psf_type == TYPE_PSF2) {
+		// TODO: psf2
+	}
+	return ret;
 }
 
 /*==================================================================================================
@@ -850,13 +893,31 @@ Notes:
 ==================================================================================================*/
 void sexypsf_quit()
 {
-	psf_stop();
-	if (PSFInfo!= NULL) {
-		sexy_freepsfinfo(PSFInfo);
-		PSFInfo = NULL;
+	if (global_psf_type == TYPE_PSF) {
+		psf_stop();
+		if (PSFInfo!= NULL) {
+			sexy_freepsfinfo(PSFInfo);
+			PSFInfo = NULL;
+		}
 	}
+	else if (global_psf_type == TYPE_PSF2) {
+		// TODO: psf2
+	}
+
 	if (mutex_initialized) {
 		pthread_mutex_destroy(&audio_buf_mutex);
 		mutex_initialized = FALSE;
 	}
+}
+
+/** PSF2 support functions */
+bool_t stop_flag;
+int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
+{
+	return AO_SUCCESS;
+}
+
+void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
+{
+
 }
