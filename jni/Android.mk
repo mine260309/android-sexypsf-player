@@ -16,24 +16,35 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+# Sexypsf lib
 VERSION := 0.4.8
 SEXY_DIR  := sexypsf-$(VERSION)
-
 SEXY_INC_DIR := -I$(LOCAL_PATH)/$(SEXY_DIR)
 
 SEXY_OBJS =	PsxBios.o PsxCounters.o PsxDma.o Spu.o PsxHw.o PsxMem.o Misc.o	\
 	R3000A.o PsxInterpreter.o PsxHLE.o spu/spu.o
 
 SEXY_SRC_FILES  := $(addprefix $(SEXY_DIR)/, $(SEXY_OBJS:.o=.c))
-LOCAL_MODULE    := sexypsf
-LOCAL_SRC_FILES := sexypsf_android.c sexypsf_wrapper.c $(SEXY_SRC_FILES)
-
-
 SEXY_FLAGS = -DPSS_STYLE=1 -DSPSFVERSION="\"${VERSION}\"" -fPIC
-LOCAL_CFLAGS += $(SEXY_INC_DIR) -Wall -O3 -finline-functions -ffast-math $(SEXY_FLAGS)
 
-##This is NDK bug that we have to specify the libz dir
-#LOCAL_LDLIBS := -lz
+
+# Audacious psf2 plugin lib
+PSF2_DIR := audacious-psf2-plugin
+PSF2_INC_DIR := -I$(LOCAL_PATH)/$(PSF2_DIR)
+PSF2_OBJS := corlett.o \
+       psx.o \
+       psx_hw.o \
+       eng_psf2.o \
+       peops2/dma.o \
+       peops2/registers.o \
+       peops2/spu.o
+PSF2_SRC_FILES := $(addprefix $(PSF2_DIR)/, $(PSF2_OBJS:.o=.c))
+CPPFLAGS += -Ispu/ -I.
+
+LOCAL_MODULE    := sexypsf
+LOCAL_SRC_FILES := sexypsf_android.c sexypsf_wrapper.c $(SEXY_SRC_FILES) $(PSF2_SRC_FILES)
+LOCAL_CFLAGS += $(SEXY_INC_DIR) $(PSF2_INC_DIR) -Wall -O3 -finline-functions -ffast-math $(SEXY_FLAGS)
+
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -lz -llog
 
 include $(BUILD_SHARED_LIBRARY)
