@@ -24,6 +24,8 @@ package com.mine.psf.sexypsf;
 //import java.io.IOException;
 //import java.util.concurrent.Semaphore;
 
+import com.mine.psf.PsfFileNavigationUtils;
+
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -91,7 +93,8 @@ public class MineSexyPsfPlayer {
 		isPsfUntimed = false;
 
 		// 2) Open psf file
-		ret = MineSexyPsfLib.sexypsfopen(psfFile, MineSexyPsfLib.TYPE_PSF);
+		ret = MineSexyPsfLib.sexypsfopen(psfFile,
+				PsfFileNavigationUtils.GetFileType(psfFile));
 		if (ret) {
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
 			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +

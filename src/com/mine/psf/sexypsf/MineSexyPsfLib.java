@@ -25,8 +25,6 @@ public class MineSexyPsfLib {
 	static {
 		System.loadLibrary("sexypsf");
 	}
-	static public final int TYPE_PSF = 1;
-	static public final int TYPE_PSF2 = 2;
 
 	/** The native function implemented by sexypsf.
 	 * It's used to open a psf file.
@@ -63,30 +61,17 @@ public class MineSexyPsfLib {
 
 class PsfInfo {
 	public int duration;
-	public int stop;
-	public int fade;
 	public String title;
 	public String artist;
 	public String game;
-	public String year;
-	public String genre;
-	public String psfby;
-	public String comment;
 	public String copyright;
 	
-	public PsfInfo(int duration, int stop, int fade, String title,
-			String artist, String game, String year, String genre,
-			String psfby, String comment, String copyright) {
+	public PsfInfo(int duration, String title,
+			String artist, String game, String copyright) {
 		this.duration = duration;
-		this.stop = stop;
-		this.fade = fade;
 		this.title = title;
 		this.artist = artist;
 		this.game = game;
-		this.year = year;
-		this.genre = genre;
-		this.psfby = psfby;
-		this.comment = comment;
 		this.copyright = copyright;
 		postInit();
 	}
@@ -100,18 +85,6 @@ class PsfInfo {
 		}
 		if (game == null) {
 			game = "";
-		}
-		if (year == null) {
-			year = "";
-		}
-		if (genre == null) {
-			genre = "";
-		}
-		if (psfby == null) {
-			psfby = "";
-		}
-		if (comment == null) {
-			comment = "";
 		}
 		if (copyright == null) {
 			copyright = "";

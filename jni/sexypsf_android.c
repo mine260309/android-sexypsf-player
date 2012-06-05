@@ -39,11 +39,12 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 #include <string.h>
 #include <unistd.h>
 
-#define DEBUG_LEVEL 0
+#define DEBUG_LEVEL 1
 //#define DEBUG_DUMP_PCM
 
 #include "sexypsf_android.h"
 #include "ao.h"
+#include "corlett.h"
 #include "eng_protos.h"
 
 #ifdef DEBUG_DUMP_PCM
@@ -82,6 +83,10 @@ static pthread_t play_thread;                      //the play back thread
 static int thread_running;
 static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
 
+static PSF_INFO* PSF2Info = NULL;
+static void* psf2_buffer = NULL;
+static int64 psf2_size = 0;
+
 typedef enum
 {
   SEXY_BUFFER_EMPTY,
@@ -97,6 +102,9 @@ static int  get_audio_buf(void* buf_ptr, int wanted_len);
 static void *playloop(void *arg);
 void        sexyd_update(unsigned char *Buffer, long count);
 static int  sexypsf_bufferstatus();
+
+// PSF2 related glue functions
+PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size);
 /*==================================================================================================
                                      LOCAL FUNCTIONS
 ==================================================================================================*/
@@ -457,7 +465,7 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
         free(dump_file_name);
     }
 #endif
-    if (type == TYPE_PSF) {
+	if (type == TYPE_PSF) {
 		if (PSFInfo!= NULL) {
 			sexy_freepsfinfo(PSFInfo);
 			PSFInfo = NULL;
@@ -471,8 +479,15 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 	}
 	else if (type == TYPE_PSF2) {
 		// TODO: implement psf2 support
+		if(!(PSF2Info=psf2_load(file_name, &psf2_buffer, &psf2_size)))
+		{
+		    debug_printf("%s: open file %s fail!!\n", __FUNCTION__, file_name);
+		    handle_error();
+		    return FALSE;
+		}
 	}
 	else {
+		debug_printf("%s: unknown psf type\n", __FUNCTION__);
 		return FALSE;
 	}
 	stored_filename = file_name;
@@ -910,6 +925,68 @@ void sexypsf_quit()
 	}
 }
 
+PSF_INFO* psf_getinfo(const char* filename)
+{
+	PSF_INFO *ret = NULL;
+	char* ext = strrchr(filename, '.');
+	if (ext == NULL) {
+		return NULL;
+	}
+	ext++;
+	if (strcasecmp(ext, "psf") == 0
+		|| strcasecmp(ext, "minipsf") == 0) {
+		// psf file
+		PSFINFO* info = sexy_getpsfinfo(filename);
+		if (info != NULL) {
+			ret=malloc(sizeof(PSF_INFO));
+			memset(ret, 0, sizeof(PSF_INFO));
+			ret->length = info->length;
+			if (info->artist) {
+				ret->artist = strdup(info->artist);
+			}
+			if (info->copyright) {
+				ret->copyright = strdup(info->copyright);
+			}
+			if (info->game) {
+				ret->game = strdup(info->game);
+			}
+			if (info->title) {
+				ret->title = strdup(info->title);
+			}
+		}
+	}
+	else if (strcasecmp(ext, "psf2") == 0
+		|| strcasecmp(ext, "minipsf2") == 0) {
+		void* buffer;
+		int64 size;
+		ret = psf2_load(filename, &buffer, &size);
+		if (ret != NULL) {
+			free(buffer);
+		}
+	}
+	return ret;
+}
+
+void psf_freeinfo(PSF_INFO* info)
+{
+	if (info == NULL) {
+		return;
+	}
+	if (info->artist) {
+		free(info->artist);
+	}
+	if (info->copyright) {
+		free(info->copyright);
+	}
+	if (info->game) {
+		free(info->game);
+	}
+	if (info->title) {
+		free(info->title);
+	}
+	free(info);
+}
+
 /** PSF2 support functions */
 bool_t stop_flag;
 int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
@@ -920,4 +997,52 @@ int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
 void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
 {
 
+}
+
+PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size) {
+	// Open and read the content of the file
+	FILE *fd;
+	corlett_t *c;
+
+	*buffer = NULL;
+	*size = 0;
+
+	fd = fopen(filename, "rb");
+
+	if (fd == NULL) {
+		return NULL;
+	}
+
+	fseek(fd, 0, SEEK_END);
+	*size = ftell(fd);
+	*buffer = malloc(*size);
+
+	if (*buffer == NULL) {
+		return NULL;
+	}
+
+	fseek(fd, 0, SEEK_SET);
+	fread(*buffer, 1, *size, fd);
+
+	fclose(fd);
+	// decode and get the file infor
+	if (corlett_decode(*buffer, *size, NULL, NULL, &c) != AO_SUCCESS) {
+		free(*buffer);
+		return NULL;
+	}
+
+	PSF_INFO *psfi=malloc(sizeof(PSF_INFO));
+	memset(psfi,0,sizeof(PSF_INFO));
+
+	psfi->length = psfTimeToMS(c->inf_length) + psfTimeToMS(c->inf_fade);
+	psfi->artist = strdup(c->inf_artist);
+	psfi->copyright = strdup(c->inf_copy);
+	psfi->game = strdup(c->inf_game);
+	psfi->title = strdup(c->inf_title);
+
+	free(c);
+	return psfi;
+}
+
+void psf2_cleanup() {
 }

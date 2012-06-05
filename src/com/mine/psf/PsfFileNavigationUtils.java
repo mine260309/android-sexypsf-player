@@ -43,7 +43,7 @@ public class PsfFileNavigationUtils {
 	public interface PsfFileType {
 		public static final int TYPE_DIR = 0;
 		public static final int TYPE_PSF = 1;
-		public static final int TYPE_PSF2 = 2;  // psf2 is in future support
+		public static final int TYPE_PSF2 = 2;
 	}
 
 	public static final int BROWSE_MODE_ALL = 0;
@@ -60,7 +60,7 @@ public class PsfFileNavigationUtils {
     	name = name.toLowerCase();
     	if (name.endsWith(".psf") || name.endsWith(".minipsf")) {
     		return PsfFileType.TYPE_PSF;
-    	} else if (name.endsWith(".psf2")) {
+    	} else if (name.endsWith(".psf2") || name.endsWith(".minipsf2")) {
     		return PsfFileType.TYPE_PSF2;
     	} else {
     		return PsfFileType.TYPE_DIR;
@@ -234,7 +234,8 @@ public class PsfFileNavigationUtils {
     public static FilenameFilter PsfFilter = new FilenameFilter() {
         public boolean accept(File dir, String name) {
         	name = name.toLowerCase();
-            return (name.endsWith(".psf") || name.endsWith(".minipsf"));
+            return (name.endsWith(".psf") || name.endsWith(".minipsf")
+            		|| name.endsWith(".psf2") || name.endsWith(".minipsf2"));
         }
     };
 

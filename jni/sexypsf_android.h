@@ -62,6 +62,13 @@ typedef enum {
 	TYPE_PSF2
 } PSF_TYPE;
 
+typedef struct {
+	u32 length;
+	char *title;
+	char *artist;
+	char *game;
+	char *copyright;
+} PSF_INFO;
 /*================================================================================================
                                          DEFINES
 ==================================================================================================*/
@@ -293,5 +300,9 @@ Notes:
    None
 ==================================================================================================*/
 void sexypsf_quit();
+
+
+PSF_INFO* psf_getinfo(const char* filename);
+void psf_freeinfo(PSF_INFO* info);
 #endif /* _SEXYPSF_ANDROID_H_ */
 

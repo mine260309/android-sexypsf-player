@@ -313,13 +313,13 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
 		jobject thiz, jstring filename)
 {
     char* name = jstringTostring(env, filename);
-    PSFINFO *tmp;
+    PSF_INFO *tmp;
 
-    if((tmp=sexy_getpsfinfo(name)))
+    if((tmp=psf_getinfo(name)))
     {
     	jclass cls = NULL;
     	jmethodID constructor;
-    	jvalue args[11];
+    	jvalue args[5];
     	jobject object;
 
     	debug_printf("get psf info success");
@@ -328,32 +328,30 @@ jobject Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfgetpsfinfo(JNIEnv* env,
     	cls = (*env)->FindClass(env, "com/mine/psf/sexypsf/PsfInfo");
     	if (cls == NULL) {
     		debug_printf("Failed to get class");
+		psf_freeinfo(tmp);
     		return NULL;
     	}
+
     	// get a reference to the constructor; the name is <init>
-    	// with 11 parameters, 3 int, 8 String
+    	// with 5 parameters, 1 int, 4 String
     	constructor = (*env)->GetMethodID(env, cls, "<init>",
-    			"(IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    			"(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     	if (constructor == NULL) {
     		debug_printf("Failed to get the method");
+		psf_freeinfo(tmp);
     		return NULL;
     	}
+
     	// set up the arguments; i means int, l means object
     	args[0].i = tmp->length;
-    	args[1].i = tmp->stop;
-    	args[2].i = tmp->fade;
-    	args[3].l = (*env)->NewStringUTF(env, tmp->title);
-    	args[4].l = (*env)->NewStringUTF(env, tmp->artist);
-    	args[5].l = (*env)->NewStringUTF(env, tmp->game);
-    	args[6].l = (*env)->NewStringUTF(env, tmp->year);
-    	args[7].l = (*env)->NewStringUTF(env, tmp->genre);
-    	args[8].l = (*env)->NewStringUTF(env, tmp->psfby);
-    	args[9].l = (*env)->NewStringUTF(env, tmp->comment);
-    	args[10].l = (*env)->NewStringUTF(env, tmp->copyright);
+    	args[1].l = (*env)->NewStringUTF(env, tmp->title);
+    	args[2].l = (*env)->NewStringUTF(env, tmp->artist);
+    	args[3].l = (*env)->NewStringUTF(env, tmp->game);
+    	args[4].l = (*env)->NewStringUTF(env, tmp->copyright);
     	object = (*env)->NewObjectA(env, cls, constructor, args);
-		sexy_freepsfinfo(tmp);
+	psf_freeinfo(tmp);
 
-		return object;
+	return object;
     }
     else {
     	debug_printf("get psf info fail");
