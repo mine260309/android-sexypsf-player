@@ -18,4 +18,3 @@ int32 spx_execute(InputPlayback *playback);
 int   spx_seek(uint32);
 int32 spx_stop(void);
 */
-extern bool_t stop_flag;

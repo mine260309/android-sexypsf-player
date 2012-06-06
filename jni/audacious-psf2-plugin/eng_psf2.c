@@ -60,7 +60,23 @@
 
 #include "corlett.h"
 
-#define DEBUG_LOADER	(0)
+// To debug...
+#include "android/log.h"
+#define printf sexypsf_dbg_printf
+static inline void sexypsf_dbg_printf(char* fmt, ...)
+{
+    va_list arg;
+    int done;
+
+    va_start(arg,fmt);
+    done = __android_log_vprint(ANDROID_LOG_INFO, "SEXYPSF",  fmt,   arg);
+    va_end(arg);
+}
+// This is really bad... just for eng_psf2.c to see CMD_STOP
+#define CMD_STOP (0x02)
+extern volatile int global_command;
+
+#define DEBUG_LOADER	(1)
 #define MAX_FS		(32)	// maximum # of filesystems (libs and subdirectories)
 
 // ELF relocation helpers
@@ -575,7 +591,7 @@ int32 psf2_execute(InputPlayback *playback)
 {
 	int i;
 
-	while (!stop_flag)
+	while (CMD_STOP != global_command)
 	{
 		for (i = 0; i < 44100 / 60; i++)
 		{

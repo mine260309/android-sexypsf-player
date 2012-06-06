@@ -55,8 +55,13 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 /*==================================================================================================
                                      GLOBAL FUNCTIONS
 ==================================================================================================*/
+char *GetFileWithBase(char *f, char *newfile);
+
 int my_sexy_get_cur_time();
 int my_sexy_seek(int32_t t);
+
+// psf2
+int my_psf2_get_cur_time();
 
 /*==================================================================================================
                                      LOCAL CONSTANTS
@@ -85,7 +90,7 @@ static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
 
 static PSF_INFO* PSF2Info = NULL;
 static void* psf2_buffer = NULL;
-static int64 psf2_size = 0;
+static uint32 psf2_size = 0;
 
 typedef enum
 {
@@ -104,7 +109,11 @@ void        sexyd_update(unsigned char *Buffer, long count);
 static int  sexypsf_bufferstatus();
 
 // PSF2 related glue functions
-PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size);
+PSF_INFO* psf2_load(const char *filename, void** buffer, uint32* size);
+void psf2_update(unsigned char *buffer, long count, InputPlayback *playback);
+static void *psf2_playloop(void *arg);
+static void psf2_cleanup();
+
 /*==================================================================================================
                                      LOCAL FUNCTIONS
 ==================================================================================================*/
@@ -485,6 +494,12 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 		    handle_error();
 		    return FALSE;
 		}
+		if (psf2_start(psf2_buffer, psf2_size) != AO_SUCCESS)
+		{
+			handle_error();
+			psf2_cleanup();
+			return FALSE;
+		}
 	}
 	else {
 		debug_printf("%s: unknown psf type\n", __FUNCTION__);
@@ -507,6 +522,7 @@ void psf_play()
 	}
 	else if (global_psf_type == TYPE_PSF2) {
 		// TODO: psf2
+		state = pthread_create(&play_thread,0,psf2_playloop,0);
 	}
     if (state == 0 ){
     	thread_running = 1;
@@ -557,7 +573,7 @@ void psf_stop()
     	pthread_join(play_thread,0);
     	thread_running = 0;
     }
-	//TODO: check how to stop psf2
+	// TODO: check how to stop psf2
 }
 
 /*==================================================================================================
@@ -594,7 +610,7 @@ void psf_pause(BOOL pause)
 //printf("resume audio\n");
         global_psf_status = PSF_STATUS_PLAYING;
     }
-	//TODO: check how to pause psf2
+	// TODO: check how to pause psf2
 }
 
 /*==================================================================================================
@@ -850,6 +866,7 @@ int psf_get_pos()
 	}
 	else if (global_psf_type == TYPE_PSF2) {
 		// TODO: psf2
+		ret = my_psf2_get_cur_time();
 	}
 	return ret;
 }
@@ -917,6 +934,8 @@ void sexypsf_quit()
 	}
 	else if (global_psf_type == TYPE_PSF2) {
 		// TODO: psf2
+		psf2_stop();
+		psf2_cleanup();
 	}
 
 	if (mutex_initialized) {
@@ -958,7 +977,7 @@ PSF_INFO* psf_getinfo(const char* filename)
 	else if (strcasecmp(ext, "psf2") == 0
 		|| strcasecmp(ext, "minipsf2") == 0) {
 		void* buffer;
-		int64 size;
+		uint32 size;
 		ret = psf2_load(filename, &buffer, &size);
 		if (ret != NULL) {
 			free(buffer);
@@ -988,29 +1007,18 @@ void psf_freeinfo(PSF_INFO* info)
 }
 
 /** PSF2 support functions */
-bool_t stop_flag;
-int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
-{
-	return AO_SUCCESS;
-}
 
-void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
-{
-
-}
-
-PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size) {
-	// Open and read the content of the file
+// Get file's contents
+static void file_get_contents(const char* filename, void** buffer, uint32* size) {
 	FILE *fd;
-	corlett_t *c;
-
 	*buffer = NULL;
 	*size = 0;
 
 	fd = fopen(filename, "rb");
 
 	if (fd == NULL) {
-		return NULL;
+		handle_error();
+		return;
 	}
 
 	fseek(fd, 0, SEEK_END);
@@ -1018,13 +1026,71 @@ PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size) {
 	*buffer = malloc(*size);
 
 	if (*buffer == NULL) {
-		return NULL;
+		handle_error();
+		return;
 	}
 
 	fseek(fd, 0, SEEK_SET);
 	fread(*buffer, 1, *size, fd);
 
 	fclose(fd);
+}
+
+int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
+{
+	void *filebuf;
+	uint32 size;
+
+	char* libfile = GetFileWithBase((char*)stored_filename, filename);
+	debug_printf("load psf2 lib %s\n", libfile);
+
+	file_get_contents (libfile, &filebuf, &size);
+	free (libfile);
+
+	*buffer = filebuf;
+	*length = (uint64)size;
+
+	return AO_SUCCESS;
+}
+
+void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
+{
+#ifdef USE_DEBUG_PRINTF
+    static int debug_index = 0;
+#endif
+    int put_len, putindex;
+
+    debug_printf("in %s: %d, buf: %08X, len: %d\n", __FUNCTION__, debug_index++, buffer, count);
+
+#ifdef DEBUG_DUMP_PCM
+    if (dump_file2 && count != 0) {
+        debug_printf("Dump pcm2.o data %d\n", count);
+		fwrite(buffer, count, 1, dump_file2);
+    }
+#endif
+    putindex = 0;
+
+    while(putindex < count)
+    {
+        put_len = put_audio_buf(buffer+putindex, count-putindex);
+        putindex+=put_len;
+        usleep(1000);
+    }
+
+    if(global_command == CMD_STOP)
+    {
+        debug_printf("in psf2_update, call psf2_stop\n");
+        psf2_stop();
+    }
+    debug_printf("%s returned\n", __FUNCTION__);
+}
+
+PSF_INFO* psf2_load(const char *filename, void** buffer, uint32* size) {
+	// Open and read the content of the file
+	corlett_t *c;
+
+	file_get_contents(filename, buffer, size);
+
 	// decode and get the file infor
 	if (corlett_decode(*buffer, *size, NULL, NULL, &c) != AO_SUCCESS) {
 		free(*buffer);
@@ -1045,4 +1111,64 @@ PSF_INFO* psf2_load(const char *filename, void** buffer, int64* size) {
 }
 
 void psf2_cleanup() {
+	if (PSF2Info) {
+		psf_freeinfo(PSF2Info);
+	}
+	if (psf2_buffer) {
+		free(psf2_buffer);
+		psf2_buffer = NULL;
+	}
+	psf2_size = 0;
+}
+
+void *psf2_playloop(void *arg)
+{
+    debug_printf("%s: in psf2 playloop\n", __FUNCTION__);
+    global_psf_status = PSF_STATUS_PLAYING;
+
+	while(TRUE)
+	{
+	    debug_printf("%s: in psf2 playloop, do psf2_execute...\n", __FUNCTION__);
+		psf2_execute(NULL);
+
+		if (CMD_SEEK == global_command)
+		{
+			//data->output->flush(seek);
+			// TODO: flush the audio
+
+			psf2_stop();
+
+			if (psf2_start(psf2_buffer, psf2_size) == AO_SUCCESS)
+			{
+				psf2_seek(global_seektime);
+				global_command = CMD_NONE;
+				continue;
+			}
+			else {
+				handle_error();
+				break;
+			}
+		}
+		else if(CMD_STOP == global_command)
+		{
+			break;
+		}
+
+	    debug_printf("%s: in psf2 playloop, call psf2_stop...\n", __FUNCTION__);
+
+		psf2_stop();
+		while(CMD_NONE == global_command \
+			&& sexypsf_bufferstatus() != SEXY_BUFFER_EMPTY) {
+				    debug_printf("%s: in psf2 playloop, sleeping...\n", __FUNCTION__);
+			usleep(10000);
+		}
+
+		break;
+	}
+
+    debug_printf("psf2 playloop exit\n");
+
+    global_psf_status = PSF_STATUS_STOPPED;
+    pthread_exit(0);
+    return NULL;
 }

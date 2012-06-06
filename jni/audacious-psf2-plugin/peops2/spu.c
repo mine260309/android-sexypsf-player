@@ -338,6 +338,11 @@ int psf2_seek(u32 t)
  return(0);
 }
 
+int my_psf2_get_cur_time()
+{
+	return sampcount*10/441000;
+}
+
 // Counting to 65536 results in full volume offage.
 void setlength2(s32 stop, s32 fade)
 {
