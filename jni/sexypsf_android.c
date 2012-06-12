@@ -1062,6 +1062,11 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
 
     debug_printf2("in %s: %d, buf: %08X, len: %d\n", __FUNCTION__, debug_index++, buffer, count);
 
+    if (buffer == NULL) {
+        // play to the end, set stop command to simulate psf2 stop
+        global_command = CMD_STOP;
+        return;
+    }
 #ifdef DEBUG_DUMP_PCM
     if (dump_file2 && count != 0) {
         debug_printf("Dump pcm2.o data %d\n", count);
@@ -1127,7 +1132,7 @@ void *psf2_playloop(void *arg)
 
 	while(TRUE)
 	{
-	    debug_printf("%s: in psf2 playloop, do psf2_execute...\n", __FUNCTION__);
+	    debug_printf2("%s: in psf2 playloop, do psf2_execute...\n", __FUNCTION__);
 		psf2_execute(NULL);
 
 		if (CMD_SEEK == global_command)
