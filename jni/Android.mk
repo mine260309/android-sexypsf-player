@@ -47,4 +47,7 @@ LOCAL_CFLAGS += $(SEXY_INC_DIR) $(PSF2_INC_DIR) -Wall -O3 -finline-functions -ff
 
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -lz -llog
 
+# Use arm code instead of thumb code to have potential better performance
+LOCAL_ARM_MODE := arm
+
 include $(BUILD_SHARED_LIBRARY)

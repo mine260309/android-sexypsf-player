@@ -1060,7 +1060,7 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
 #endif
     int put_len, putindex;
 
-    debug_printf("in %s: %d, buf: %08X, len: %d\n", __FUNCTION__, debug_index++, buffer, count);
+    debug_printf2("in %s: %d, buf: %08X, len: %d\n", __FUNCTION__, debug_index++, buffer, count);
 
 #ifdef DEBUG_DUMP_PCM
     if (dump_file2 && count != 0) {
@@ -1082,7 +1082,6 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
         debug_printf("in psf2_update, call psf2_stop\n");
         psf2_stop();
     }
-    debug_printf("%s returned\n", __FUNCTION__);
 }
 
 PSF_INFO* psf2_load(const char *filename, void** buffer, uint32* size) {
