@@ -72,10 +72,8 @@ static inline void sexypsf_dbg_printf(char* fmt, ...)
     done = __android_log_vprint(ANDROID_LOG_INFO, "SEXYPSF",  fmt,   arg);
     va_end(arg);
 }
-// This is really bad... just for eng_psf2.c to see CMD_STOP
-#define CMD_STOP (0x02)
-extern volatile int global_command;
 
+extern bool_t psf2_stop_flag;
 #define DEBUG_LOADER	(1)
 #define MAX_FS		(32)	// maximum # of filesystems (libs and subdirectories)
 
@@ -594,7 +592,7 @@ int32 psf2_execute(InputPlayback *playback)
 {
 	int i;
 
-	while (CMD_STOP != global_command)
+	while (TRUE != psf2_stop_flag)
 	{
 		for (i = 0; i < 44100 / 60; i++)
 		{

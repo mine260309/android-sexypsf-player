@@ -81,6 +81,7 @@ volatile PSF_CMD    global_command;             //the global command
 volatile PSF_STATUS global_psf_status;          //the global status
 int                 global_seektime = 0;        //the global seek time
 PSF_TYPE			global_psf_type = -1;
+volatile bool_t     psf2_stop_flag = FALSE;
 
 static int mutex_initialized = FALSE;
 static pthread_mutex_t audio_buf_mutex;
@@ -500,6 +501,7 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 			psf2_cleanup();
 			return FALSE;
 		}
+        psf2_stop_flag = FALSE;
 	}
 	else {
 		debug_printf("%s: unknown psf type\n", __FUNCTION__);
@@ -1064,7 +1066,7 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
 
     if (buffer == NULL) {
         // play to the end, set stop command to simulate psf2 stop
-        global_command = CMD_STOP;
+        psf2_stop_flag = TRUE;
         return;
     }
 #ifdef DEBUG_DUMP_PCM
@@ -1084,8 +1086,8 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
 
     if(global_command == CMD_STOP)
     {
-        debug_printf("in psf2_update, call psf2_stop\n");
-        psf2_stop();
+        debug_printf("%s: set psf2_stop_flag\n", __FUNCTION__);
+        psf2_stop_flag = TRUE;
     }
 }
 
@@ -1127,12 +1129,11 @@ void psf2_cleanup() {
 
 void *psf2_playloop(void *arg)
 {
-    debug_printf("%s: in psf2 playloop\n", __FUNCTION__);
     global_psf_status = PSF_STATUS_PLAYING;
 
 	while(TRUE)
 	{
-	    debug_printf2("%s: in psf2 playloop, do psf2_execute...\n", __FUNCTION__);
+	    debug_printf("%s: do psf2_execute...\n", __FUNCTION__);
 		psf2_execute(NULL);
 
 		if (CMD_SEEK == global_command)
@@ -1153,25 +1154,22 @@ void *psf2_playloop(void *arg)
 				break;
 			}
 		}
-		else if(CMD_STOP == global_command)
-		{
-			break;
-		}
 
-	    debug_printf("%s: in psf2 playloop, call psf2_stop...\n", __FUNCTION__);
+	    debug_printf("%s: call psf2_stop...\n", __FUNCTION__);
 
 		psf2_stop();
-		while(CMD_NONE == global_command \
+/*
+		while(psf2_stop_flag == TRUE \
 			&& sexypsf_bufferstatus() != SEXY_BUFFER_EMPTY) {
-				    debug_printf("%s: in psf2 playloop, sleeping...\n", __FUNCTION__);
+            debug_printf("%s: in psf2 playloop, sleeping...\n", __FUNCTION__);
 			usleep(10000);
 		}
-
+*/
 		break;
 	}
 
     debug_printf("psf2 playloop exit\n");
-
+    psf2_stop_flag = TRUE;
     global_psf_status = PSF_STATUS_STOPPED;
     pthread_exit(0);
     return NULL;
