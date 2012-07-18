@@ -598,6 +598,13 @@ int32 psf2_execute(InputPlayback *playback)
 		{
 			SPU2async(1, (void *) playback);
 			ps2_hw_slice();
+// 2012.07.18 Lei YU
+// Playback of FFX's psf2 falls into this null state and loop forever,
+// workaround here to prevent app hangs
+            if (psf2_stop_flag) {
+                printf("psf2 play failure, return directly");
+                return AO_FAIL;
+            }
 		}
 
 		ps2_hw_frame();

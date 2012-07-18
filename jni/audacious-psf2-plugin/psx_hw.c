@@ -85,6 +85,8 @@ extern void SPU2writeDMA7Mem(uint32 usPSXMem,int iSize);
 extern void SPU2interruptDMA4(void);
 extern void SPU2interruptDMA7(void);
 
+extern bool_t psf2_stop_flag;
+
 #define MAX_FILE_SLOTS	(32)
 
 static volatile int softcall_target = 0;
@@ -1014,6 +1016,12 @@ static void call_irq_routine(uint32 routine, uint32 parameter)
 	while (!softcall_target)
 	{
 		mips_execute(10);
+// 2012.07.18 Lei YU
+// Playback of FFX's psf2 falls into this null state and loop forever,
+// workaround here to prevent app hangs
+        if (psf2_stop_flag) {
+            break;
+        }
 	}
 	mips_set_icount(oldICount);
 
@@ -1354,6 +1362,10 @@ void psx_bios_hle(uint32 pc)
 		printf("IOP 'null' state\n");
 		#endif
 //		ao_song_done = 1;
+// 2012.07.18 Lei YU
+// Playback of FFX's psf2 falls into this null state and loop forever,
+// workaround here to prevent app hangs
+        psf2_stop_flag = true;
 		return;
 	}
 

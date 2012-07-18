@@ -488,7 +488,6 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 		}
 	}
 	else if (type == TYPE_PSF2) {
-		// TODO: implement psf2 support
 		if(!(PSF2Info=psf2_load(file_name, &psf2_buffer, &psf2_size)))
 		{
 		    debug_printf("%s: open file %s fail!!\n", __FUNCTION__, file_name);
