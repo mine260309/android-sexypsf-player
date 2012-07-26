@@ -726,7 +726,15 @@ void sexyd_update(unsigned char *Buffer, long count)
     {
         put_len = put_audio_buf(Buffer+putindex, count-putindex);
         putindex+=put_len;
-        usleep(1000);
+
+        if (PSF_STATUS_PAUSE == global_psf_status) {
+        // sleep a longer time in pause status to reduce cpu usage
+            usleep(500000); // 500ms
+        }
+        else {
+        // sleep a short time since we're playing psf audio
+            usleep(1000);
+        }
     }
 #if 0
     if(global_command == CMD_SEEK)
@@ -810,7 +818,14 @@ int psf_audio_putdata(uint8_t *stream, int len)
         {
         	break;
         }
-        usleep(1000);
+        if (PSF_STATUS_PAUSE == global_psf_status) {
+        // sleep a longer time in pause status to reduce cpu usage
+            usleep(500000); // 500ms
+        }
+        else {
+        // sleep a short time since we're playing psf audio
+            usleep(1000);
+        }
     }
 
     if (audio_data_index < len) {
@@ -1061,7 +1076,15 @@ void psf2_update(unsigned char *buffer, long count, InputPlayback *playback)
     {
         put_len = put_audio_buf(buffer+putindex, count-putindex);
         putindex+=put_len;
-        usleep(1000);
+
+        if (PSF_STATUS_PAUSE == global_psf_status) {
+        // sleep a longer time in pause status to reduce cpu usage
+            usleep(500000); // 500ms
+        }
+        else {
+        // sleep a short time since we're playing psf audio
+            usleep(1000);
+        }
     }
 
     if(global_command == CMD_STOP)

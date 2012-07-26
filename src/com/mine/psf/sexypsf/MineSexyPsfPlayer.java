@@ -326,7 +326,7 @@ public class MineSexyPsfPlayer {
 					// But this is really bad.
 					// Find an alternative or use OpenGL Audio API in native code
 					try {
-						Thread.sleep(1);
+						Thread.sleep(500);
 					} catch (InterruptedException e) {
 						CircularBuffer.Discard();
 						break;
