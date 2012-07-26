@@ -60,21 +60,8 @@
 
 #include "corlett.h"
 
-// To debug...
-#include "android/log.h"
-#define printf sexypsf_dbg_printf
-static inline void sexypsf_dbg_printf(char* fmt, ...)
-{
-    va_list arg;
-    int done;
-
-    va_start(arg,fmt);
-    done = __android_log_vprint(ANDROID_LOG_INFO, "SEXYPSF",  fmt,   arg);
-    va_end(arg);
-}
-
 extern bool_t psf2_stop_flag;
-#define DEBUG_LOADER	(1)
+#define DEBUG_LOADER	(0)
 #define MAX_FS		(32)	// maximum # of filesystems (libs and subdirectories)
 
 // ELF relocation helpers

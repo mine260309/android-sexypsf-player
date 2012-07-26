@@ -39,7 +39,7 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 #include <string.h>
 #include <unistd.h>
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 0
 //#define DEBUG_DUMP_PCM
 
 #include "sexypsf_android.h"

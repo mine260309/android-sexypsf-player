@@ -18,7 +18,7 @@
 #include <string.h>
 #include <jni.h>
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 0
 //#define DEBUG_DUMP_PCM
 #include "sexypsf_android.h"
 
