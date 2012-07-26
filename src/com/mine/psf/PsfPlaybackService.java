@@ -82,7 +82,7 @@ public class PsfPlaybackService extends Service
 	public static final int MSG_JUMP_PREV = STATE_MSG_MAX + 2;
 
     // interval after which we stop the service when idle
-    private static final int IDLE_DELAY = 20000;
+    private static final int IDLE_DELAY = 10*1000*60;
 
 	// playlist that should be set by browser
 	private String[] playList = null;
@@ -98,7 +98,7 @@ public class PsfPlaybackService extends Service
     @Override
     public void onCreate() {
     	super.onCreate();
-    	
+
     	PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, this.getClass().getName());
         mWakeLock.setReferenceCounted(false);
@@ -174,9 +174,8 @@ public class PsfPlaybackService extends Service
         mServiceInUse = false;
         saveQueue();
     	if (PsfPlayer!= null) {
-    		if (PsfPlayer.isActive() /* || mPausedByTransientLossOfFocus*/) {
-    			// something is currently playing, or will be playing once 
-    			// an in-progress action requesting audio focus ends, so don't stop the service now.
+    		if (PsfPlayer.isPlaying() /* || mPausedByTransientLossOfFocus*/) {
+    			// something is currently playing, don't stop the service now.
     			return true;
     		}
 
@@ -186,11 +185,11 @@ public class PsfPlaybackService extends Service
     		if ( playList.length > 0  || mMediaplayerHandler.hasMessages(STATE_STOPPED)) {
     			Message msg = mDelayedStopHandler.obtainMessage();
     			mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
-    	    	Log.d(LOGTAG, "onUnbind, wait a while before stopping service");
+    	    	Log.d(LOGTAG, "wait a while before stopping service");
     			return true;
     		}
     	}
-    	Log.d(LOGTAG, "onUnbind, stop service");
+        Log.d(LOGTAG, "stop service");
         stopSelf(mServiceStartId);
         return true;
     }
@@ -273,6 +272,7 @@ public class PsfPlaybackService extends Service
             // Check again to make sure nothing is playing right now
             if (isPlaying() || /*mPausedByTransientLossOfFocus ||*/ mServiceInUse
                     || mMediaplayerHandler.hasMessages(STATE_STOPPED)) {
+                Log.d(LOGTAG, "ignore stop msg");
                 return;
             }
             // save the queue again, because it might have changed
