@@ -73,9 +73,6 @@ int my_psf2_get_cur_time();
 ==================================================================================================*/
 static PSFINFO *PSFInfo=NULL;                                   //the psf info structure defined in driver.h
 static const char* stored_filename = NULL;                            //the stored file name
-static uint8_t playing_audio_buf[AUDIO_BLOCK_BUFFER_SIZE];      //the audio buffer
-static uint8_t* audio_buf_pointer = playing_audio_buf;          //the pointer of audio buffer
-static int put_index=0, get_index=0, free_size = 0;             //the index used for the audio buffer
 
 volatile PSF_CMD    global_command;             //the global command
 volatile PSF_STATUS global_psf_status;          //the global status
@@ -87,7 +84,6 @@ static int mutex_initialized = FALSE;
 static pthread_mutex_t audio_buf_mutex;
 static pthread_t play_thread;                      //the play back thread
 static int thread_running;
-static uint8_t audio_static_data[AUDIO_BLOCK_BUFFER_SIZE];
 
 static PSF_INFO* PSF2Info = NULL;
 static void* psf2_buffer = NULL;
@@ -98,6 +94,16 @@ typedef enum
   SEXY_BUFFER_EMPTY,
   SEXY_BUFFER_FULL
 } SEXY_BUFFER_STATE;
+
+// The lock-free fifo buffer, which requires that only one reader and one writer
+struct fifo_buf {
+  unsigned int in;
+  unsigned int out;
+  unsigned int size;
+  uint8_t _buf[AUDIO_BLOCK_BUFFER_SIZE]; // the size must be power of 2
+};
+
+struct fifo_buf playing_audio_buf;
 
 /*==================================================================================================
                                      LOCAL FUNCTION PROTOTYPES
@@ -118,6 +124,53 @@ static void psf2_cleanup();
 /*==================================================================================================
                                      LOCAL FUNCTIONS
 ==================================================================================================*/
+inline static unsigned int min(a, b)
+{
+  return a <= b ? a : b;
+}
+
+void fifo_init(struct fifo_buf* buf)
+{
+  buf->in = 0;
+  buf->out = 0;
+  buf->size = sizeof(buf->_buf);
+}
+
+unsigned int fifo_freesize(struct fifo_buf* fifo)
+{
+  return fifo->size - (fifo->in - fifo->out);
+}
+
+unsigned int fifo_put(struct fifo_buf* fifo,
+       const uint8_t *buffer, unsigned int len)
+{
+  unsigned int l;
+  len = min(len, fifo->size - fifo->in + fifo->out);
+  /* first put the data starting from fifo->in to buffer end */
+  l = min(len, fifo->size - (fifo->in & (fifo->size - 1)));
+  memcpy(fifo->_buf + (fifo->in & (fifo->size - 1)), buffer, l);
+  /* then put the rest (if any) at the beginning of the buffer */
+  memcpy(fifo->_buf, buffer + l, len - l);
+  fifo->in += len;
+  return len;
+}
+
+unsigned int fifo_get(struct fifo_buf* fifo,
+     uint8_t *buffer, unsigned int len)
+{
+  unsigned int l;
+  len = min(len, fifo->in - fifo->out);
+  if (buffer != NULL) {
+    /* first get the data from fifo->out until the end of the buffer */
+    l = min(len, fifo->size - (fifo->out & (fifo->size - 1)));
+    memcpy(buffer, fifo->_buf + (fifo->out & (fifo->size - 1)), l);
+    /* then get the rest (if any) from the beginning of the buffer */
+    memcpy(buffer + l, fifo->_buf, len - l);
+  }
+  fifo->out += len;
+  return len;
+}
+
 #ifdef DEBUG_SHOW_TIME
 /*==================================================================================================
 
@@ -197,38 +250,10 @@ Notes:
 ==================================================================================================*/
 static int put_audio_buf(void* buf, int len)
 {
-    int put_len1, put_len2;
     int actual_put_len;
     debug_printf2("%s: buf %08X, len %d", __FUNCTION__, buf, len);
 
-    pthread_mutex_lock(&audio_buf_mutex);
-
-    if(free_size > len)
-    {
-        actual_put_len = len;
-    }
-    else
-    {
-        actual_put_len = free_size;
-    }
-    free_size -= actual_put_len;
-
-
-    if(put_index + actual_put_len < AUDIO_BLOCK_BUFFER_SIZE)
-    {
-        put_len1 = actual_put_len;
-        memcpy(audio_buf_pointer+put_index, buf, put_len1);
-        put_index+=put_len1;
-    }
-    else
-    {   /* slipt to two memcpy */
-        put_len1 = AUDIO_BLOCK_BUFFER_SIZE-put_index;
-        memcpy(audio_buf_pointer+put_index, buf, put_len1);
-        put_len2 = actual_put_len - put_len1;
-        memcpy(audio_buf_pointer, buf+put_len1, put_len2);
-        put_index = put_len2;
-    }
-    pthread_mutex_unlock(&audio_buf_mutex);
+    actual_put_len = fifo_put(&playing_audio_buf, buf, len);
 
     debug_printf2("%s return with %d\n", __FUNCTION__, actual_put_len);
     return actual_put_len;
@@ -259,47 +284,8 @@ Notes:
 ==================================================================================================*/
 static int get_audio_buf(void* buf_ptr, int wanted_len)
 {
-    int get_len1, get_len2;
-    int actual_get_len;
-    int data_len_in_buffer;
-
     debug_printf2("%s: buf %08X, len %d", __FUNCTION__, buf_ptr, wanted_len);
-
-    pthread_mutex_lock(&audio_buf_mutex);
-
-    data_len_in_buffer = AUDIO_BLOCK_BUFFER_SIZE - free_size;
-    if(data_len_in_buffer > wanted_len)
-    {
-        actual_get_len = wanted_len;
-    }
-    else
-    {
-        actual_get_len = data_len_in_buffer;
-    }
-    if(actual_get_len != 0) {
-        free_size += actual_get_len;
-    }
-
-    if(actual_get_len!=0)
-    {
-		if(get_index + actual_get_len < AUDIO_BLOCK_BUFFER_SIZE)
-		{
-			get_len1 = actual_get_len;
-			memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
-			get_index+=get_len1;
-		}
-		else
-		{   /* split to two memcpy */
-			get_len1 = AUDIO_BLOCK_BUFFER_SIZE-get_index;
-			memcpy(buf_ptr, audio_buf_pointer+get_index, get_len1);
-			get_len2 = actual_get_len - get_len1;
-			memcpy(buf_ptr+get_len1, audio_buf_pointer, get_len2);
-			get_index = get_len2;
-		}
-    }
-    pthread_mutex_unlock(&audio_buf_mutex);
-
-    return actual_get_len;
+    return fifo_get(&playing_audio_buf, buf_ptr, wanted_len);
 }
 
 /*==================================================================================================
@@ -428,8 +414,7 @@ SIDE EFFECTS:
 static void sexypsf_clear_audio_buffer()
 {
 //  global_clear_buf_flag = 1;
-	audio_buf_pointer = playing_audio_buf;
-    put_index=0, get_index=0, free_size = AUDIO_BLOCK_BUFFER_SIZE;
+    fifo_init(&playing_audio_buf);
 }
 
 
@@ -569,7 +554,7 @@ void psf_stop()
     global_command = CMD_STOP;
     if (thread_running) {
     	// consume audio data so that the thread gets a chance to exit
-    	get_audio_buf(audio_static_data, AUDIO_BLOCK_BUFFER_SIZE - free_size);
+    	get_audio_buf(NULL, AUDIO_BLOCK_BUFFER_SIZE);
     	debug_printf("joining player thread...");
     	pthread_join(play_thread,0);
     	thread_running = 0;
@@ -810,22 +795,19 @@ int psf_audio_putdata(uint8_t *stream, int len)
         if(global_command == CMD_STOP)
         {
             sexypsf_clear_audio_buffer();
-            //memset(audio_static_data, 0, len);
             break;
         }
-        get_len = get_audio_buf(audio_static_data+audio_data_index, len-audio_data_index);
+        get_len = get_audio_buf(stream+audio_data_index, len-audio_data_index);
 #ifdef DEBUG_DUMP_PCM
     if (dump_file && get_len != 0) {
         debug_printf("Dump pcm2 data %d\n", get_len);
-		fwrite(audio_static_data+audio_data_index, get_len, 1, dump_file);
+		fwrite(stream+audio_data_index, get_len, 1, dump_file);
     }
 #endif
         audio_data_index+=get_len;
         if( (get_len == 0) &&
         	(global_psf_status == PSF_STATUS_STOPPED) )
         {
-        	//memset(audio_static_data, 0, len);
-        	//len = 0;
         	break;
         }
         usleep(1000);
@@ -834,7 +816,6 @@ int psf_audio_putdata(uint8_t *stream, int len)
     if (audio_data_index < len) {
     	debug_printf("audio_data_index %d < len %d\n", audio_data_index, len);
     }
-    memcpy(stream, audio_static_data, audio_data_index);
     return audio_data_index;
 }
 
@@ -896,7 +877,7 @@ Notes:
 ==================================================================================================*/
 static int sexypsf_bufferstatus()
 {
-    if(free_size == AUDIO_BLOCK_BUFFER_SIZE)
+    if(fifo_freesize(&playing_audio_buf) == AUDIO_BLOCK_BUFFER_SIZE)
         return SEXY_BUFFER_EMPTY;
     else
         return SEXY_BUFFER_FULL;
