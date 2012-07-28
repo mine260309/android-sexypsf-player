@@ -507,6 +507,7 @@ public class PsfPlaybackService extends Service
 			PsfPlayer.Quit();
 		}
         gotoIdleState();
+        stopSelf(mServiceStartId);
 	}
 
     private void notifyChange(String what) {
