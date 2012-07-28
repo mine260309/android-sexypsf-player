@@ -80,8 +80,6 @@ int                 global_seektime = 0;        //the global seek time
 PSF_TYPE			global_psf_type = -1;
 volatile bool_t     psf2_stop_flag = FALSE;
 
-static int mutex_initialized = FALSE;
-static pthread_mutex_t audio_buf_mutex;
 static pthread_t play_thread;                      //the play back thread
 static int thread_running;
 
@@ -378,13 +376,6 @@ Notes:
 ==================================================================================================*/
 void sexypsf_init()
 {
-	if (!mutex_initialized) {
-		if (pthread_mutex_init(&audio_buf_mutex, NULL) != 0) {
-			handle_error();
-		}
-		mutex_initialized = TRUE;
-	}
-
 	sexypsf_clear_audio_buffer();
 	global_seektime = 0;
 	global_command = CMD_NONE;
@@ -930,14 +921,8 @@ void sexypsf_quit()
 		}
 	}
 	else if (global_psf_type == TYPE_PSF2) {
-		// TODO: psf2
 		psf2_stop();
 		psf2_cleanup();
-	}
-
-	if (mutex_initialized) {
-		pthread_mutex_destroy(&audio_buf_mutex);
-		mutex_initialized = FALSE;
 	}
 }
 
@@ -1157,17 +1142,6 @@ void *psf2_playloop(void *arg)
 				break;
 			}
 		}
-
-	    debug_printf("%s: call psf2_stop...\n", __FUNCTION__);
-
-		psf2_stop();
-/*
-		while(psf2_stop_flag == TRUE \
-			&& sexypsf_bufferstatus() != SEXY_BUFFER_EMPTY) {
-            debug_printf("%s: in psf2 playloop, sleeping...\n", __FUNCTION__);
-			usleep(10000);
-		}
-*/
 		break;
 	}
 
