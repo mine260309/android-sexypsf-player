@@ -28,4 +28,8 @@
         android:key="@string/key_psf_root_dir"
         android:title="@string/pref_psf_root_dir_title" />
 
+	<com.mine.psf.PsfFeedbackPreference
+	    android:title="@string/pref_email_title"
+	    android:summary="@string/pref_email_summary"
+	/>
 </PreferenceScreen>
