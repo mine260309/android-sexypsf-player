@@ -146,8 +146,13 @@ public class MineSexyPsfPlayer {
 				// Start playing after opened
 				threadShallExit = false;
 				PsfAudioTrack.setStereoVolume(1, 1);
-				GetThread.start();
-				PutThread.start();
+				try {
+				  GetThread.start();
+				  PutThread.start();
+				}
+				catch (Exception ex) {
+				  Log.e(LOGTAG, ex.toString());
+				}
 				// Will switch to STATE_PLAYING in put thread
 			}
 			else {
