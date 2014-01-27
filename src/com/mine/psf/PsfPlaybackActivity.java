@@ -38,35 +38,35 @@ import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
+//import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
+//import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
+//import android.widget.Toast;
 
 public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 		OnLongClickListener {
 	private static final String LOGTAG = "PsfPlaybackActivity";
 
     private boolean mOneShot = false;
-    private boolean mSeeking = false;
-    private boolean mDeviceHasDpad;
-    private long mStartSeekPos = 0;
-    private long mLastSeekEventTime;
+//    private boolean mSeeking = false;
+//    private boolean mDeviceHasDpad;
+//    private long mStartSeekPos = 0;
+//    private long mLastSeekEventTime;
     private PsfPlaybackService mService = null;
     private RepeatingImageButton mPrevButton;
     private ImageButton mPauseButton;
     private RepeatingImageButton mNextButton;
-    private ImageButton mRepeatButton;
-    private ImageButton mShuffleButton;
+//    private ImageButton mRepeatButton;
+//    private ImageButton mShuffleButton;
     private ImageButton mQueueButton;
-    private Toast mToast;
-    private int mTouchSlop;
+//    private Toast mToast;
+//    private int mTouchSlop;
     private ServiceToken mToken;
     
     private ImageView mAlbum;
@@ -77,14 +77,14 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     private TextView mTrackName;
     private ProgressBar mProgress;
     private long mPosOverride = -1;
-    private boolean mFromTouch = false;
+//    private boolean mFromTouch = false;
     private long mDuration;
-    private int seekmethod;
+//    private int seekmethod;
     private boolean paused;
 
     private static final int REFRESH = 1;
     private static final int QUIT = 2;
-    private static final int GET_ALBUM_ART = 3;
+//    private static final int GET_ALBUM_ART = 3;
 
 	@Override
 	public boolean onTouch(View arg0, MotionEvent arg1) {
@@ -137,7 +137,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         mNextButton = (RepeatingImageButton) findViewById(R.id.next);
         mNextButton.setOnClickListener(mNextListener);
 //        mNextButton.setRepeatListener(mFfwdListener, 260);
-        seekmethod = 1;
+//        seekmethod = 1;
 
         //mDeviceHasDpad = (getResources().getConfiguration().navigation ==
         //    Configuration.NAVIGATION_DPAD);
@@ -161,7 +161,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
             mOneShot = getIntent().getBooleanExtra("oneshot", false);
         }
 
-        mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+//        mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
     }
 
     private View.OnClickListener mPauseListener = new View.OnClickListener() {
