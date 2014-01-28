@@ -301,7 +301,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.v(LOGTAG, "mStatusListener receive: " + action);
+            // Log.v(LOGTAG, "mStatusListener receive: " + action);
             if (action.equals(PsfPlaybackService.PLAYBACK_COMPLETE)) {
                 if (mOneShot) {
                     finish();

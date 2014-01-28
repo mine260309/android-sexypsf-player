@@ -18,12 +18,6 @@
 
 package com.mine.psf.sexypsf;
 
-//import java.io.File;
-//import java.io.FileNotFoundException;
-//import java.io.FileOutputStream;
-//import java.io.IOException;
-//import java.util.concurrent.Semaphore;
-
 import com.mine.psf.PsfFileNavigationUtils;
 
 import android.media.AudioFormat;
@@ -99,7 +93,7 @@ public class MineSexyPsfPlayer {
 	        		AudioTrack.MODE_STREAM);
 		}
 		//Log.d(LOGTAG, "call AudioTrack.flush()");
-		PsfAudioTrack.flush();
+		// PsfAudioTrack.flush(); flush() does not work for MODE_STREAM
 		isAudioTrackOpened = false;
 		isPsfUntimed = false;
 
@@ -200,7 +194,7 @@ public class MineSexyPsfPlayer {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
+
 		// TODO: Dump is for debugging, comment below code before release 
 //		try {
 //			if (DumpedFileWriteToHW != null) {
@@ -285,7 +279,7 @@ public class MineSexyPsfPlayer {
 			return "";
 		}
 	}
-	
+
 	public void Quit() {
 		MineSexyPsfLib.sexypsfquit();
 	}
@@ -360,7 +354,7 @@ public class MineSexyPsfPlayer {
 				try {
 					MineAudioCircularBuffer.BufferChunk chunk =
 						CircularBuffer.GetReadBufferPrepare(MINE_AUDIO_BUFFER_PUT_GET_LEN);
-					
+
 					// TODO: Dump is for debugging, comment below code before release 
 //					try {
 //						if (DumpedFileWriteToHW != null) {
@@ -371,9 +365,11 @@ public class MineSexyPsfPlayer {
 //					}
 
 					SampleDataSizePlayed += chunk.len;
-					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+					if (!CircularBuffer.getEndFlag()) {
+					    PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+						//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
+					}
 					CircularBuffer.GetReadBufferDone(chunk.len);
-					//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
 
 					if (repeatState != RepeatState.REPEAT_ONE) {
 						// TODO: A better solution may come up, for now it's a hack.
