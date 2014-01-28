@@ -26,25 +26,28 @@
     android:layout_height="fill_parent"
     android:padding="10dp" >
     <ImageView android:id="@+id/notification_image"
-        android:layout_width="wrap_content"
-        android:layout_height="fill_parent"
+        android:layout_width="@android:dimen/notification_large_icon_width"
+        android:layout_height="@android:dimen/notification_large_icon_height"
         android:layout_alignParentLeft="true"
-        android:layout_marginRight="10dp" />
+        android:scaleType="centerInside"/>
     <TextView android:id="@+id/notification_track"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@id/notification_image"
+        android:layout_marginLeft="16dp"
         style="@style/NotificationTitle" />
     <TextView android:id="@+id/notification_album"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@id/notification_image"
         android:layout_below="@+id/notification_track"
+        android:layout_marginLeft="16dp"
         style="@style/NotificationText" />
     <!-- The 'Next' button, which only works after v11 -->
     <ImageButton android:id="@+id/notification_next_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
+        android:layout_gravity="center"
         style="@android:style/MediaButton.Next" />
 </RelativeLayout>

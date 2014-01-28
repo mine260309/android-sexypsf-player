@@ -18,12 +18,6 @@
 
 package com.mine.psf.sexypsf;
 
-//import java.io.File;
-//import java.io.FileNotFoundException;
-//import java.io.FileOutputStream;
-//import java.io.IOException;
-//import java.util.concurrent.Semaphore;
-
 import com.mine.psf.PsfFileNavigationUtils;
 
 import android.media.AudioFormat;
@@ -31,6 +25,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioTrack.OnPlaybackPositionUpdateListener;
 import android.os.Handler;
+import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -45,20 +40,28 @@ public class MineSexyPsfPlayer {
 		public static final int STATE_OPENED = 5;
 		public static final int STATE_MSG_MAX = 10;
 	}
+	public interface RepeatState {
+		public static final int REPEAT_OFF = 0;
+		public static final int REPEAT_ONE = 1;
+		public static final int REPEAT_ALL = 2;
+	}
 
 	public static final int PSFPLAY=0;
 	public static final int PSFPAUSE=1;
 	
+	private static final int MSG_REPEAT = 0;
 	private static final String LOGTAG = "MinePsfPlayer";
 	private static final int UNTIMED_TRACK_DURATION = 3*60*1000;
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
+	private String PsfFileName;
 	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
 	private PsfInfo PsfFileInfo;
 	private boolean isAudioTrackOpened;
 	private boolean isPsfUntimed; // some psf has no duration
+	private int repeatState;
 	private int PlayerState;
 	private Handler mHandler;
 	private int SampleDataSizePlayed;
@@ -73,11 +76,13 @@ public class MineSexyPsfPlayer {
 	public MineSexyPsfPlayer() {
 		CircularBuffer = new MineAudioCircularBuffer(MINE_AUDIO_BUFFER_TOTAL_LEN);
 		setPsfState(PsfPlayerState.STATE_IDLE);
+		repeatState = RepeatState.REPEAT_OFF;
 //		PsfPlaybackEndSemaphore = new Semaphore(1);
 	}
 
 	public boolean Open(String psfFile) {
 		boolean ret;
+		PsfFileName = psfFile;
 		setPsfState(PsfPlayerState.STATE_IDLE);
 		// 1) open audio device;
 		if (PsfAudioTrack == null) {
@@ -88,7 +93,7 @@ public class MineSexyPsfPlayer {
 	        		AudioTrack.MODE_STREAM);
 		}
 		//Log.d(LOGTAG, "call AudioTrack.flush()");
-		PsfAudioTrack.flush();
+		// PsfAudioTrack.flush(); flush() does not work for MODE_STREAM
 		isAudioTrackOpened = false;
 		isPsfUntimed = false;
 
@@ -189,7 +194,7 @@ public class MineSexyPsfPlayer {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
+
 		// TODO: Dump is for debugging, comment below code before release 
 //		try {
 //			if (DumpedFileWriteToHW != null) {
@@ -202,7 +207,21 @@ public class MineSexyPsfPlayer {
 //			e.printStackTrace();
 //		}
 	}
-	
+
+	public void ToggleRepeat() {
+		// Currently only support REPEAT_OFF and REPEAT_ONE
+		if (repeatState == RepeatState.REPEAT_OFF) {
+			repeatState = RepeatState.REPEAT_ONE;
+		}
+		else if (repeatState == RepeatState.REPEAT_ONE) {
+			repeatState = RepeatState.REPEAT_OFF;
+		}
+	}
+
+	public int GetRepeatState() {
+		return repeatState;
+	}
+
 	public boolean isPlaying() {
 		return PlayerState == PsfPlayerState.STATE_PLAYING
 			|| PlayerState == PsfPlayerState.STATE_PENDING_PLAY;
@@ -260,11 +279,11 @@ public class MineSexyPsfPlayer {
 			return "";
 		}
 	}
-	
+
 	public void Quit() {
 		MineSexyPsfLib.sexypsfquit();
 	}
-	
+
 	// The thread that read data from psf lib
 	private class PsfAudioGetThread extends Thread {
 		public void run(){
@@ -335,7 +354,7 @@ public class MineSexyPsfPlayer {
 				try {
 					MineAudioCircularBuffer.BufferChunk chunk =
 						CircularBuffer.GetReadBufferPrepare(MINE_AUDIO_BUFFER_PUT_GET_LEN);
-					
+
 					// TODO: Dump is for debugging, comment below code before release 
 //					try {
 //						if (DumpedFileWriteToHW != null) {
@@ -346,20 +365,24 @@ public class MineSexyPsfPlayer {
 //					}
 
 					SampleDataSizePlayed += chunk.len;
-					PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+					if (!CircularBuffer.getEndFlag()) {
+					    PsfAudioTrack.write(chunk.buffer, chunk.index, chunk.len);
+						//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
+					}
 					CircularBuffer.GetReadBufferDone(chunk.len);
-					//Log.d(LOGTAG, "Written data to HW: "+(counter++) +" len: "+chunk.len);
 
-					// TODO: A better solution may come up, for now it's a hack.
-					// Handle untimed track: check the position,
-					// if it exceeds the duration, treat it as end
-					if (isPsfUntimed) {
-						if (GetPositionFromSampleDataSize() >=
-								PsfFileInfo.duration / 1000)
-						{
-							Log.d(LOGTAG, "End of untimed track");
-							CircularBuffer.setAudioBufferEnd();
-							threadShallExit = true;
+					if (repeatState != RepeatState.REPEAT_ONE) {
+						// TODO: A better solution may come up, for now it's a hack.
+						// Handle untimed track: check the position,
+						// if it exceeds the duration, treat it as end
+						if (isPsfUntimed) {
+							if (GetPositionFromSampleDataSize() >=
+									PsfFileInfo.duration / 1000)
+							{
+								Log.d(LOGTAG, "End of untimed track");
+								CircularBuffer.setAudioBufferEnd();
+								threadShallExit = true;
+							}
 						}
 					}
 					if (getPsfState() == PsfPlayerState.STATE_PENDING_PLAY) {
@@ -402,9 +425,15 @@ public class MineSexyPsfPlayer {
 //						waitPsfEnd();
 					}
 				} catch (InterruptedException e1) {}
-				PsfAudioTrack.stop();
-				PsfAudioTrack.setStereoVolume(0, 0);
-				notifyStateChange(PsfPlayerState.STATE_STOPPED);
+				if (repeatState != RepeatState.REPEAT_ONE) {
+					PsfAudioTrack.stop();
+					PsfAudioTrack.setStereoVolume(0, 0);
+					notifyStateChange(PsfPlayerState.STATE_STOPPED);
+				}
+				else {
+					// Repeat the psf
+					selfHandler.sendEmptyMessage(MSG_REPEAT);
+				}
 			}
 			else {
 				Log.d(LOGTAG, "Interrupted");
@@ -472,4 +501,18 @@ public class MineSexyPsfPlayer {
     private int getPsfState() {
     	return PlayerState;
     }
+    
+    private Handler selfHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+        	if (msg.what == MSG_REPEAT) {
+        		Log.v(LOGTAG, "Auto repeat " + PsfFileName);
+        		Stop();
+        		if (!PsfFileName.equals("")) {
+	        		Open(PsfFileName);
+	        		Play(PSFPLAY);
+        		}
+        	}
+        }
+    };
 }

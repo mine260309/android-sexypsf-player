@@ -57,12 +57,13 @@
            <!-- ImageButton android:id="@+id/shuffle"
                 android:layout_width="85dip"
                 android:layout_height="54dip"
-                android:layout_marginTop="20dip" />
+                android:layout_marginTop="20dip" / -->
 
            <ImageButton android:id="@+id/repeat"
+                android:src="@drawable/ic_mp_repeat_off_btn"
                 android:layout_width="85dip"
                 android:layout_height="54dip"
-                android:layout_marginTop="20dip" / -->
+                android:layout_marginTop="20dip" />
 
         </LinearLayout>
 

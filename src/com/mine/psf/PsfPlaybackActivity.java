@@ -19,6 +19,7 @@
 package com.mine.psf;
 
 import com.mine.psf.PsfUtils.ServiceToken;
+import com.mine.psf.sexypsf.MineSexyPsfPlayer.RepeatState;
 import com.mine.psfplayer.R;
 
 import android.app.Activity;
@@ -38,35 +39,35 @@ import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
+//import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
+//import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
+//import android.widget.Toast;
 
 public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 		OnLongClickListener {
 	private static final String LOGTAG = "PsfPlaybackActivity";
 
     private boolean mOneShot = false;
-    private boolean mSeeking = false;
-    private boolean mDeviceHasDpad;
-    private long mStartSeekPos = 0;
-    private long mLastSeekEventTime;
+//    private boolean mSeeking = false;
+//    private boolean mDeviceHasDpad;
+//    private long mStartSeekPos = 0;
+//    private long mLastSeekEventTime;
     private PsfPlaybackService mService = null;
     private RepeatingImageButton mPrevButton;
     private ImageButton mPauseButton;
     private RepeatingImageButton mNextButton;
     private ImageButton mRepeatButton;
-    private ImageButton mShuffleButton;
+//    private ImageButton mShuffleButton;
     private ImageButton mQueueButton;
-    private Toast mToast;
-    private int mTouchSlop;
+//    private Toast mToast;
+//    private int mTouchSlop;
     private ServiceToken mToken;
     
     private ImageView mAlbum;
@@ -77,14 +78,14 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
     private TextView mTrackName;
     private ProgressBar mProgress;
     private long mPosOverride = -1;
-    private boolean mFromTouch = false;
+//    private boolean mFromTouch = false;
     private long mDuration;
-    private int seekmethod;
+//    private int seekmethod;
     private boolean paused;
 
     private static final int REFRESH = 1;
     private static final int QUIT = 2;
-    private static final int GET_ALBUM_ART = 3;
+//    private static final int GET_ALBUM_ART = 3;
 
 	@Override
 	public boolean onTouch(View arg0, MotionEvent arg1) {
@@ -137,7 +138,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         mNextButton = (RepeatingImageButton) findViewById(R.id.next);
         mNextButton.setOnClickListener(mNextListener);
 //        mNextButton.setRepeatListener(mFfwdListener, 260);
-        seekmethod = 1;
+//        seekmethod = 1;
 
         //mDeviceHasDpad = (getResources().getConfiguration().navigation ==
         //    Configuration.NAVIGATION_DPAD);
@@ -146,8 +147,8 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         mQueueButton.setOnClickListener(mQueueListener);
 //        mShuffleButton = ((ImageButton) findViewById(R.id.shuffle));
 //        mShuffleButton.setOnClickListener(mShuffleListener);
-//        mRepeatButton = ((ImageButton) findViewById(R.id.repeat));
-//        mRepeatButton.setOnClickListener(mRepeatListener);
+        mRepeatButton = ((ImageButton) findViewById(R.id.repeat));
+        mRepeatButton.setOnClickListener(mRepeatListener);
         
 //        if (mProgress instanceof SeekBar) {
 //            SeekBar seeker = (SeekBar) mProgress;
@@ -161,7 +162,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
             mOneShot = getIntent().getBooleanExtra("oneshot", false);
         }
 
-        mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+//        mTouchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
     }
 
     private View.OnClickListener mPauseListener = new View.OnClickListener() {
@@ -205,6 +206,15 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         }
     };
 
+    private View.OnClickListener mRepeatListener = new View.OnClickListener() {
+        public void onClick(View v) {
+            if (mService == null) {
+            	return;
+            }
+            mService.repeat();
+        }
+    };
+    
     private void doPauseResume() {
     	//Log.d(LOGTAG, "doPauesResume");
     	if(mService != null) {
@@ -255,6 +265,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         
         IntentFilter f = new IntentFilter();
         f.addAction(PsfPlaybackService.PLAYSTATE_CHANGED);
+        f.addAction(PsfPlaybackService.REPEATSTATE_CHANGED);
         f.addAction(PsfPlaybackService.PLAYBACK_COMPLETE);
         f.addAction(PsfPlaybackService.META_CHANGED);
         registerReceiver(mStatusListener, new IntentFilter(f));
@@ -276,7 +287,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
         super.onResume();
     	//Log.d(LOGTAG, "onResume");
         updateTrackInfo();
-        setPauseButtonImage();
+        setButtonImage();
     }
     
     @Override
@@ -295,27 +306,47 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
                 if (mOneShot) {
                     finish();
                 } else {
-                    setPauseButtonImage();
+                    setButtonImage();
                 }
-            } else if (action.equals(PsfPlaybackService.PLAYSTATE_CHANGED)) {
-                setPauseButtonImage();
-            } else if (action.equals(PsfPlaybackService.META_CHANGED)) {
+            }
+            else if (action.equals(PsfPlaybackService.PLAYSTATE_CHANGED)) {
+                setButtonImage();
+            }
+            else if (action.equals(PsfPlaybackService.META_CHANGED)) {
                 // redraw the artist/title info and
                 // set new max for progress bar
                 updateTrackInfo();
-                setPauseButtonImage();
+                setButtonImage();
                 queueNextRefresh(1);
+            }
+            else if (action.equals(PsfPlaybackService.REPEATSTATE_CHANGED)) {
+            	setButtonImage();
             }
         }
     };
 
-    private void setPauseButtonImage() {
-    	// Log.d(LOGTAG, "setPauseButtonImage");
-    	if (mService != null && mService.isPlaying()) {
-    		mPauseButton.setImageResource(android.R.drawable.ic_media_pause);
-    	} else {
-    		mPauseButton.setImageResource(android.R.drawable.ic_media_play);
+    private void setButtonImage() {
+    	// Log.d(LOGTAG, "setButtonImage");
+    	if (mService != null) {
+	    	if (mService.isPlaying()) {
+	    		mPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+	    	}
+	    	switch (mService.getRepeatState()) {
+	    	case RepeatState.REPEAT_OFF:
+	    		mRepeatButton.setImageResource(R.drawable.ic_mp_repeat_off_btn);
+	    		break;
+	    	case RepeatState.REPEAT_ONE:
+	    		mRepeatButton.setImageResource(R.drawable.ic_mp_repeat_once_btn);
+	    		break;
+	    	case RepeatState.REPEAT_ALL:
+	    		mRepeatButton.setImageResource(R.drawable.ic_mp_repeat_all_btn);
+	    		break;
+	    	}
     	}
+    	else {
+     		mPauseButton.setImageResource(android.R.drawable.ic_media_play);
+     		mRepeatButton.setImageResource(R.drawable.ic_mp_repeat_off_btn);
+     	}
     }
 
     private ServiceConnection osc = new ServiceConnection() {
@@ -331,7 +362,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
                 // but also if the audio ID is valid but the service is paused.
                 if ( mService.isActive()) {
                 	// TODO: set all other widgets
-                    setPauseButtonImage();
+                    setButtonImage();
                     return;
                 }
             } catch (Exception ex) {

@@ -56,17 +56,17 @@
 	                android:src="@drawable/ic_mp_current_playlist_btn"
 	                android:layout_width="82dip"
 	                android:layout_height="45dip"
-	                android:layout_marginTop="8dip"
-	                android:nextFocusLeft="@id/curplaylist"/>
+	                android:layout_marginTop="8dip"/>
 	           <!-- ImageButton android:id="@+id/shuffle"
 	                android:layout_width="85dip"
 	                android:layout_height="54dip"
-	                android:layout_marginTop="20dip" />
+	                android:layout_marginTop="20dip" / -->
 	
 	           <ImageButton android:id="@+id/repeat"
-	                android:layout_width="85dip"
-	                android:layout_height="54dip"
-	                android:layout_marginTop="20dip" / -->
+                    android:src="@drawable/ic_mp_repeat_off_btn"
+	                android:layout_width="82dip"
+	                android:layout_height="45dip"
+	                android:layout_marginTop="8dip" />
 
            </LinearLayout>
 

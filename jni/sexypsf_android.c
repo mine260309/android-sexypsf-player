@@ -451,6 +451,7 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
         free(dump_file_name);
     }
 #endif
+    psf2_cleanup();
 	if (type == TYPE_PSF) {
 		if (PSFInfo!= NULL) {
 			sexy_freepsfinfo(PSFInfo);
@@ -550,7 +551,6 @@ void psf_stop()
     	pthread_join(play_thread,0);
     	thread_running = 0;
     }
-	// TODO: check how to stop psf2
 }
 
 /*==================================================================================================
@@ -1107,6 +1107,7 @@ PSF_INFO* psf2_load(const char *filename, void** buffer, uint32* size) {
 void psf2_cleanup() {
 	if (PSF2Info) {
 		psf_freeinfo(PSF2Info);
+		PSF2Info = NULL;
 	}
 	if (psf2_buffer) {
 		free(psf2_buffer);
@@ -1138,14 +1139,15 @@ void *psf2_playloop(void *arg)
 				continue;
 			}
 			else {
+				psf2_cleanup();
 				handle_error();
 				break;
 			}
 		}
 		break;
 	}
-
     debug_printf("psf2 playloop exit\n");
+    psf2_stop();
     psf2_stop_flag = TRUE;
     global_psf_status = PSF_STATUS_STOPPED;
     pthread_exit(0);
