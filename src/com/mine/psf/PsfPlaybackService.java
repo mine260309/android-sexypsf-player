@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.Random;
 
 import com.mine.psf.sexypsf.MineSexyPsfPlayer;
+import com.mine.psf.sexypsf.MineSexyPsfPlayer.RepeatState;
 import com.mine.psfplayer.R;
 
 import android.app.Notification;
@@ -77,6 +78,7 @@ public class PsfPlaybackService extends Service
     public static final String META_CHANGED = "com.mine.psf.metachanged";
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
+	public static final String REPEATSTATE_CHANGED = "com.mine.psf.repeatstatechanged";
 
 	public static final int MSG_JUMP_NEXT = STATE_MSG_MAX + 1;
 	public static final int MSG_JUMP_PREV = STATE_MSG_MAX + 2;
@@ -423,6 +425,25 @@ public class PsfPlaybackService extends Service
 				mMediaplayerHandler.sendEmptyMessage(MSG_JUMP_PREV);
 			}
 		}
+	}
+
+	public void repeat() {
+		synchronized(this) {
+			if (PsfPlayer != null) {
+				Log.d(LOGTAG, "repeat");
+				PsfPlayer.ToggleRepeat();
+				notifyChange(REPEATSTATE_CHANGED);
+			}
+		}
+	}
+
+	public int getRepeatState() {
+		int ret = RepeatState.REPEAT_OFF;
+		if (PsfPlayer != null) {
+			ret = PsfPlayer.GetRepeatState();
+		}
+		Log.d(LOGTAG, "getRepeatState: " + ret);
+		return ret;
 	}
 
 	public int getPlaylistPosition() {
