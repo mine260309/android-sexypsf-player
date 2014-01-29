@@ -209,11 +209,13 @@ public class MineSexyPsfPlayer {
 	}
 
 	public void ToggleRepeat() {
-		// Currently only support REPEAT_OFF and REPEAT_ONE
 		if (repeatState == RepeatState.REPEAT_OFF) {
 			repeatState = RepeatState.REPEAT_ONE;
 		}
 		else if (repeatState == RepeatState.REPEAT_ONE) {
+			repeatState = RepeatState.REPEAT_ALL;
+		}
+		else {
 			repeatState = RepeatState.REPEAT_OFF;
 		}
 	}
@@ -425,15 +427,9 @@ public class MineSexyPsfPlayer {
 //						waitPsfEnd();
 					}
 				} catch (InterruptedException e1) {}
-				if (repeatState != RepeatState.REPEAT_ONE) {
-					PsfAudioTrack.stop();
-					PsfAudioTrack.setStereoVolume(0, 0);
-					notifyStateChange(PsfPlayerState.STATE_STOPPED);
-				}
-				else {
-					// Repeat the psf
-					selfHandler.sendEmptyMessage(MSG_REPEAT);
-				}
+				PsfAudioTrack.stop();
+				PsfAudioTrack.setStereoVolume(0, 0);
+				notifyStateChange(PsfPlayerState.STATE_STOPPED);
 			}
 			else {
 				Log.d(LOGTAG, "Interrupted");
@@ -501,18 +497,4 @@ public class MineSexyPsfPlayer {
     private int getPsfState() {
     	return PlayerState;
     }
-    
-    private Handler selfHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-        	if (msg.what == MSG_REPEAT) {
-        		Log.v(LOGTAG, "Auto repeat " + PsfFileName);
-        		Stop();
-        		if (!PsfFileName.equals("")) {
-	        		Open(PsfFileName);
-	        		Play(PSFPLAY);
-        		}
-        	}
-        }
-    };
 }

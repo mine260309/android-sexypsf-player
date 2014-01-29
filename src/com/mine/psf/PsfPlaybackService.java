@@ -385,7 +385,7 @@ public class PsfPlaybackService extends Service
 	public void next() {
 		synchronized(this) {
 			Log.d(LOGTAG, "next");
-			int pos = goNext();
+			int pos = goNext(true);
 			if (pos == -1) {
 				Log.d(LOGTAG, "No Next Track!");
 				return;
@@ -669,13 +669,28 @@ public class PsfPlaybackService extends Service
 //    	}
 //    	Log.d(LOGTAG, "GetShuffleList: " + sb.toString());
     }
-    
-    private int goNext() {
+
+    // forceNext true to ignore REPEAT_ONE case
+    private int goNext(boolean forceNext) {
     	if (shuffleList == null) {
     		return 0;
     	}
+		int repeatState = PsfPlayer.GetRepeatState();
+
+		// Loop-one in case of auto next
+		if (!forceNext && repeatState == RepeatState.REPEAT_ONE) {
+			curPos--;
+		}
+
     	if (curPos + 1 >= playList.length) {
-    		return -1;
+    		if (repeatState != RepeatState.REPEAT_ALL) {
+    			// Play to the end
+    			return -1;
+    		}
+    		else {
+    			// Loop-all
+    			curPos = -1;
+    		}
     	}
     	if (playShuffle) {
     		return shuffleList[++curPos];
@@ -684,13 +699,22 @@ public class PsfPlaybackService extends Service
     		return ++curPos;
     	}
     }
-    
+
     private int goPrev() {
     	if (shuffleList == null) {
     		return 0;
     	}
+		int repeatState = PsfPlayer.GetRepeatState();
+
     	if (curPos == 0) {
-    		return -1;
+			// At beginning of playlist
+    		if (repeatState != RepeatState.REPEAT_ALL) {
+        		return -1;    			
+    		}
+    		else {
+    			// Loop-all
+    			curPos = playList.length;
+    		}
     	}
     	if (playShuffle) {
     		return shuffleList[--curPos];
@@ -704,14 +728,24 @@ public class PsfPlaybackService extends Service
 	 *  If it's the last item in the playlist, stop */
 	private void autoNext() {
 		synchronized(this) {
-	    	if (curPos + 1 >= playList.length) {
-				Log.d(LOGTAG, "No Next Track, stop");
-	    		stop();
-	    		return;
-	    	}
-	    	else {
-	    		next();
-	    	}
+			Log.d(LOGTAG, "autonext");
+			int pos = goNext(false);
+			if (pos == -1) {
+				Log.d(LOGTAG, "No Next Track!");
+				return;
+			}
+			boolean ret;
+			ret = openFile(playList[pos]);
+			if (ret) {
+				play();
+				saveCurPos();
+			}
+			else {
+				// Remove the file from list and next
+				removeFromList(pos);
+				curPos--;
+				mMediaplayerHandler.sendEmptyMessage(MSG_JUMP_NEXT);
+			}
 		}
 	}
 
