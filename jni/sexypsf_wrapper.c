@@ -370,3 +370,11 @@ void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfquit( JNIEnv* env,
 {
 	sexypsf_quit();
 }
+
+
+void Java_com_mine_psf_sexypsf_MineSexyPsfLib_sexypsfsetinfiniteloop(JNIEnv* env,
+                                             jobject thiz,
+                                             jboolean loop)
+{
+	psf_set_infinite_loop(loop);
+}

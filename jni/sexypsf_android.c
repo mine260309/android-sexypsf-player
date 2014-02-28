@@ -328,7 +328,7 @@ dofunky:
         		sexy_freepsfinfo(PSFInfo);
         		PSFInfo = NULL;
         	}
-            if(!(PSFInfo=sexy_load(stored_filename)))
+            if(!(PSFInfo=sexy_load((char*)stored_filename)))
             {
                 handle_error();
             }
@@ -463,6 +463,7 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 		    handle_error();
 		    return FALSE;
 		}
+		debug_printf("length: %u, stop %u, fade %u\n", PSFInfo->length, PSFInfo->stop, PSFInfo->fade);
 	}
 	else if (type == TYPE_PSF2) {
 		if(!(PSF2Info=psf2_load(file_name, &psf2_buffer, &psf2_size)))
@@ -937,7 +938,7 @@ PSF_INFO* psf_getinfo(const char* filename)
 	if (strcasecmp(ext, "psf") == 0
 		|| strcasecmp(ext, "minipsf") == 0) {
 		// psf file
-		PSFINFO* info = sexy_getpsfinfo(filename);
+		PSFINFO* info = sexy_getpsfinfo((char*)filename);
 		if (info != NULL) {
 			ret=malloc(sizeof(PSF_INFO));
 			memset(ret, 0, sizeof(PSF_INFO));
@@ -1152,4 +1153,20 @@ void *psf2_playloop(void *arg)
     global_psf_status = PSF_STATUS_STOPPED;
     pthread_exit(0);
     return NULL;
+}
+
+void psf_set_infinite_loop(BOOL loop)
+{
+	if (global_psf_type == TYPE_PSF
+		&& PSFInfo != NULL) {
+		if (loop) {
+			debug_printf("set infinite loop");
+			SPUsetlength(~0, 0);
+		}
+		else {
+			debug_printf("set stop %u, fade %u", PSFInfo->stop, PSFInfo->fade);
+			SPUsetlength(PSFInfo->stop, PSFInfo->fade);
+		}
+	}
+	// Currently only support psf infinite loop
 }

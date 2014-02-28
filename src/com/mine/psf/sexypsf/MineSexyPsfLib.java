@@ -57,6 +57,9 @@ public class MineSexyPsfLib {
 	
 	/** Native function to release all the resources */
 	public static native void sexypsfquit();
+	
+	/** Native function to pause the playback */
+	public static native void sexypsfsetinfiniteloop(boolean loop);
 }
 
 class PsfInfo {
