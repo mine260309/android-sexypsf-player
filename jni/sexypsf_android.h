@@ -101,14 +101,6 @@ typedef unsigned char BOOL;
 	#define debug_printf2(...)
 #endif
 
-static inline void sexypsf_dbg_printf(char* fmt, ...)
-{
-    va_list arg;
-    va_start(arg,fmt);
-    __android_log_vprint(ANDROID_LOG_INFO, "SEXYPSF", fmt, arg);
-    va_end(arg);
-}
-
 #define handle_error() do{\
 	__android_log_print(ANDROID_LOG_ERROR, "SEXYPSF", "Error occurs at line %d\n", __LINE__);\
 }while(0)

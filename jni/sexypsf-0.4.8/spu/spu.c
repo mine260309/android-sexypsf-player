@@ -88,6 +88,10 @@
 #include "PsxMem.h"
 #include "driver.h"
 
+#define debug_printf(...)
+//#define debug_printf sexypsf_dbg_printf
+//extern void sexypsf_dbg_printf(char* fmt, ...);
+
 ////////////////////////////////////////////////////////////////////////
 // globals
 ////////////////////////////////////////////////////////////////////////
@@ -180,6 +184,82 @@ static INLINE void StartSound(int ch)
 static u32 sampcount;
 static u32 decaybegin;
 static u32 decayend;
+static s32 shouldInfiniteLoop;
+static u32 shouldCheckSilence;
+static u32 silenceSamples;
+static u32 nonSilenceSample;
+const static u32 SilenceThreshold = 3 /*seconds*/ * 44100;
+const static u32 NonSilenceThreshold = 15 /*seconds*/ * 44100;
+
+
+// Return 1 if spu OK to exit
+// Return 0 otherwise
+s32 SpuShouldGotoExit()
+{
+  if (shouldInfiniteLoop) {
+	  /* if decayend == 0 means sexy_end is called
+       *   return 1
+       * if sampcount >= decayend
+	   *   mark song plays beyond the decayend, if not marked yet
+	   *   if silence samples is larger than a specific value
+	   *     return 1
+	   *   else
+	   *     return 0
+	   * else
+	   *   return 0
+	  */
+    if (decayend == 0) {
+      return 1;
+    }
+	  if (sampcount >= decayend) {
+		  if (!shouldCheckSilence && nonSilenceSample < NonSilenceThreshold) {
+			  // Check silence for a SilenceThreshold
+			  // If the song keeps playing, do not check silence anymore
+			  debug_printf("Start to check silence, sampcount: %u, decayend: %u", sampcount, decayend);
+			  shouldCheckSilence = 1;
+		  }
+		  else if (shouldCheckSilence && nonSilenceSample >= NonSilenceThreshold) {
+			  debug_printf("Stop to check silence, sampcount: %u, decayend: %u", sampcount, decayend);
+			  shouldCheckSilence = 0;
+		  }
+		  if (silenceSamples >= SilenceThreshold) {
+			  return 1;
+		  }
+		  else {
+			  return 0;
+		  }
+	  }
+	  else {
+		  return 0;
+	  }
+  }
+  else {
+	  return sampcount>=decaybegin;
+  }
+}
+
+void CheckSilenceSamples(u8* buffer, u32 count)
+{
+  // Calculate silenceSample
+  // If non-silenceSamples is larger than a threshold, do not count again...
+  //debug_printf("CheckSilenceSamples: buffer %p, count %u\n", buffer, count);
+
+  u32 zeroCount = 0;
+  u32 i;
+  for (i = 0; i < count; ++i) {
+    if (buffer[i] == 0) {
+      zeroCount++;
+    }
+  }
+  if (zeroCount > (count / 2)) {
+    silenceSamples += (count / 2); // 2 bytes is a sample
+    debug_printf("count: %u, silence samples is added by %u and becomes %u\n", count, count / 2, silenceSamples);
+  }
+  else {
+	nonSilenceSample += (count / 2);
+    debug_printf("count: %u, non-silence samples is added by %u and becomes %u\n", count, count / 2, nonSilenceSample);
+  }
+}
 
 // Counting to 65536 results in full volume offage.
 void SPUsetlength(s32 stop, s32 fade)
@@ -196,6 +276,15 @@ void SPUsetlength(s32 stop, s32 fade)
   decaybegin=stop;
   decayend=stop+fade;
  }
+ shouldCheckSilence = 0;
+ shouldInfiniteLoop = 0;
+ silenceSamples = 0;
+ nonSilenceSample = 0;
+}
+
+void SPUSetInfiniteLoop(s32 infiniteLoop)
+{
+  shouldInfiniteLoop = infiniteLoop;
 }
 
 static s32 seektime;
@@ -458,13 +547,13 @@ int SPUasync(u32 cycles)
   ///////////////////////////////////////////////////////
   // mix all channels (including reverb) into one buffer
   MixREVERBLeftRight(&sl,&sr,revLeft,revRight);
-  if(sampcount>=decaybegin)
-  {
+  if (SpuShouldGotoExit()) {
    s32 dmul;
    if(decaybegin!=~0) // Is anyone REALLY going to be playing a song
 		      // for 13 hours?
    {
-    if(sampcount>=decayend) 
+    // TODO: check if we should return depending on infinite loop setting
+	if(sampcount>=decayend)
     {
 	    return(0);
     }
@@ -514,6 +603,11 @@ void SPUendflush(void)
    }
    else if((u8*)pS>((u8*)pSpuBuffer+1024))
    {
+	if (shouldCheckSilence) {
+      // check the buffer if it's almost all 0, and set silence sample count
+      u32 count = (u8*)pS-(u8*)pSpuBuffer;
+      CheckSilenceSamples(pSpuBuffer, count);
+	}
     sexyd_update((u8*)pSpuBuffer,(u8*)pS-(u8*)pSpuBuffer);
     pS=(s16 *)pSpuBuffer;
    }
