@@ -214,7 +214,7 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
             mService.repeat();
         }
     };
-    
+
     private void doPauseResume() {
     	//Log.d(LOGTAG, "doPauesResume");
     	if(mService != null) {

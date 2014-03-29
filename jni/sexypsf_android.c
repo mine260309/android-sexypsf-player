@@ -55,6 +55,15 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
 /*==================================================================================================
                                      GLOBAL FUNCTIONS
 ==================================================================================================*/
+ inline void sexypsf_dbg_printf(char* fmt, ...)
+ {
+   va_list arg;
+   va_start(arg,fmt);
+   __android_log_vprint(ANDROID_LOG_INFO, "SEXYPSF", fmt, arg);
+   va_end(arg);
+ }
+extern void SPUSetInfiniteLoop(s32 infiniteLoop);
+
 char *GetFileWithBase(char *f, char *newfile);
 
 int my_sexy_get_cur_time();
@@ -328,7 +337,7 @@ dofunky:
         		sexy_freepsfinfo(PSFInfo);
         		PSFInfo = NULL;
         	}
-            if(!(PSFInfo=sexy_load(stored_filename)))
+            if(!(PSFInfo=sexy_load((char*)stored_filename)))
             {
                 handle_error();
             }
@@ -463,6 +472,7 @@ BOOL psf_open(const char* file_name, PSF_TYPE type)
 		    handle_error();
 		    return FALSE;
 		}
+		debug_printf("length: %u, stop %u, fade %u\n", PSFInfo->length, PSFInfo->stop, PSFInfo->fade);
 	}
 	else if (type == TYPE_PSF2) {
 		if(!(PSF2Info=psf2_load(file_name, &psf2_buffer, &psf2_size)))
@@ -937,7 +947,7 @@ PSF_INFO* psf_getinfo(const char* filename)
 	if (strcasecmp(ext, "psf") == 0
 		|| strcasecmp(ext, "minipsf") == 0) {
 		// psf file
-		PSFINFO* info = sexy_getpsfinfo(filename);
+		PSFINFO* info = sexy_getpsfinfo((char*)filename);
 		if (info != NULL) {
 			ret=malloc(sizeof(PSF_INFO));
 			memset(ret, 0, sizeof(PSF_INFO));
@@ -1152,4 +1162,24 @@ void *psf2_playloop(void *arg)
     global_psf_status = PSF_STATUS_STOPPED;
     pthread_exit(0);
     return NULL;
+}
+
+void psf_set_infinite_loop(BOOL loop)
+{
+	if (global_psf_type == TYPE_PSF
+		&& PSFInfo != NULL) {
+		// Use another approach for infinite loop:
+		// 1) set a global flag;
+		// 2) in spu.c, check the flag and go with the loop, it works for songs that loop
+		// 3) in somewhere, check the produced samples, if they're all 0, consider it ends and let spu break;
+		if (loop) {
+			debug_printf("set infinite loop");
+			SPUSetInfiniteLoop(1);
+		}
+		else {
+			debug_printf("set stop %u, fade %u", PSFInfo->stop, PSFInfo->fade);
+			SPUSetInfiniteLoop(0);
+		}
+	}
+	// Currently only support psf infinite loop
 }

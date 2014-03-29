@@ -54,7 +54,7 @@ public class MineSexyPsfPlayer {
 	private static final int UNTIMED_TRACK_DURATION = 3*60*1000;
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
-	private String PsfFileName;
+	//private String PsfFileName;
 	private AudioTrack PsfAudioTrack = null;
 	private MineAudioCircularBuffer CircularBuffer;
 	private boolean threadShallExit;
@@ -82,7 +82,7 @@ public class MineSexyPsfPlayer {
 
 	public boolean Open(String psfFile) {
 		boolean ret;
-		PsfFileName = psfFile;
+		//PsfFileName = psfFile;
 		setPsfState(PsfPlayerState.STATE_IDLE);
 		// 1) open audio device;
 		if (PsfAudioTrack == null) {
@@ -101,6 +101,10 @@ public class MineSexyPsfPlayer {
 		ret = MineSexyPsfLib.sexypsfopen(psfFile,
 				PsfFileNavigationUtils.GetFileType(psfFile));
 		if (ret) {
+			// Set loop status
+			MineSexyPsfLib.sexypsfsetinfiniteloop(
+					repeatState == RepeatState.REPEAT_ONE);
+
 			PsfFileInfo = MineSexyPsfLib.sexypsfgetpsfinfo(psfFile);
 			//Log.d(LOGTAG, "Get psf info: " + PsfFileInfo.title +
 			//		", duration: " + PsfFileInfo.duration);
@@ -223,6 +227,9 @@ public class MineSexyPsfPlayer {
 		else {
 			repeatState = RepeatState.REPEAT_OFF;
 		}
+		// Set loop status
+		MineSexyPsfLib.sexypsfsetinfiniteloop(
+				repeatState == RepeatState.REPEAT_ONE);
 	}
 
 	public int GetRepeatState() {
