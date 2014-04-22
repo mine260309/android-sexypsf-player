@@ -63,6 +63,7 @@ Lei Yu                      03/25/2012	    Code clean up, remove SDL related cod
    va_end(arg);
  }
 extern void SPUSetInfiniteLoop(s32 infiniteLoop);
+extern void SPUSetInfiniteLoop2(s32 infiniteLoop);
 
 char *GetFileWithBase(char *f, char *newfile);
 
@@ -1177,9 +1178,20 @@ void psf_set_infinite_loop(BOOL loop)
 			SPUSetInfiniteLoop(1);
 		}
 		else {
-			debug_printf("set stop %u, fade %u", PSFInfo->stop, PSFInfo->fade);
+      debug_printf("Disable infinite loop");
 			SPUSetInfiniteLoop(0);
 		}
 	}
+  else if (global_psf_type == TYPE_PSF2
+           && PSF2Info != NULL) {
+    if (loop) {
+      debug_printf("set infinite loop");
+      SPUSetInfiniteLoop2(1);
+    }
+    else {
+      debug_printf("Disable infinite loop");
+      SPUSetInfiniteLoop2(0);
+    }
+  }
 	// Currently only support psf infinite loop
 }

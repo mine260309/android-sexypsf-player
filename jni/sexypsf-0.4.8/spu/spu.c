@@ -194,7 +194,7 @@ const static u32 NonSilenceThreshold = 15 /*seconds*/ * 44100;
 
 // Return 1 if spu OK to exit
 // Return 0 otherwise
-s32 SpuShouldGotoExit()
+static s32 SpuShouldGotoExit()
 {
   if (shouldInfiniteLoop) {
 	  /* if decayend == 0 means sexy_end is called
@@ -238,7 +238,7 @@ s32 SpuShouldGotoExit()
   }
 }
 
-void CheckSilenceSamples(u8* buffer, u32 count)
+static void CheckSilenceSamples(u8* buffer, u32 count)
 {
   // Calculate silenceSample
   // If non-silenceSamples is larger than a threshold, do not count again...
