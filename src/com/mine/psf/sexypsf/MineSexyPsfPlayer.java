@@ -25,7 +25,6 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.AudioTrack.OnPlaybackPositionUpdateListener;
 import android.os.Handler;
-import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -49,8 +48,7 @@ public class MineSexyPsfPlayer {
 	public static final int PSFPLAY=0;
 	public static final int PSFPAUSE=1;
 	
-	private static final int MSG_REPEAT = 0;
-	private static final String LOGTAG = "MinePsfPlayer";
+		private static final String LOGTAG = "MinePsfPlayer";
 	private static final int UNTIMED_TRACK_DURATION = 3*60*1000;
 	private static final int MINE_AUDIO_BUFFER_TOTAL_LEN = 1024*256;
 	private static final int MINE_AUDIO_BUFFER_PUT_GET_LEN = MINE_AUDIO_BUFFER_TOTAL_LEN/4;
@@ -457,7 +455,7 @@ public class MineSexyPsfPlayer {
 		SampleDataSizePlayed = 0;
 		LastSampleDataSize = 0;
 		LastPosTime = 0;
-		LastPos = 0;		
+		LastPos = 0;
 	}
 	private int GetPositionFromSampleDataSize() {
 		// Calculate position

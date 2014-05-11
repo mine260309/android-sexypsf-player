@@ -29,24 +29,27 @@ import com.mine.psf.sexypsf.MineSexyPsfPlayer;
 import com.mine.psf.sexypsf.MineSexyPsfPlayer.RepeatState;
 import com.mine.psfplayer.R;
 
+import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.media.AudioManager;
+import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
-import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -54,7 +57,7 @@ import android.widget.RemoteViews;
  * Provides background psf playback capabilities, allowing the
  * user to switch between activities without stopping playback.
  */
-public class PsfPlaybackService extends Service
+@TargetApi(Build.VERSION_CODES.FROYO) public class PsfPlaybackService extends Service
 	implements MineSexyPsfPlayer.PsfPlayerState {
 
 	private static final String LOGTAG = "PsfPlaybackService";
@@ -64,16 +67,20 @@ public class PsfPlaybackService extends Service
 	private BroadcastReceiver mHeadsetReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
+    private AudioManager PsfAudioManager;
+    private ComponentName PsfControlResponder;
     private MineSexyPsfPlayer PsfPlayer;
 
     public static final String CMDNAME = "command";
     public static final String CMDTOGGLEPAUSE = "togglepause";
+    public static final String CMDPLAY = "play";
     public static final String CMDSTOP = "stop";
     public static final String CMDPAUSE = "pause";
-    public static final String CMDPREVIOUS = "previous";
+    public static final String CMDPREV = "previous";
     public static final String CMDNEXT = "next";
-    public static final String TOGGLEPAUSE_ACTION = "com.mine.psf.psfservicecmd.togglepause";
-    public static final String PAUSE_ACTION = "com.mine.psf.psfservicecmd.pause";
+    public static final String ACTION_CMD = "com.mine.psf.servicecmd";
+    //public static final String ACTION_TOGGLE_PLAYPAUSE = "com.mine.psf.psfservicecmd.togglepause";
+    //public static final String ACTION_PAUSE = "com.mine.psf.psfservicecmd.pause";
 
     public static final String META_CHANGED = "com.mine.psf.metachanged";
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
@@ -106,6 +113,11 @@ public class PsfPlaybackService extends Service
         mWakeLock.setReferenceCounted(false);
         Log.d(LOGTAG, "onCreate, Acquire Wake Lock");
 
+        PsfAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        PsfControlResponder = new ComponentName(getPackageName(),
+                RemoteControlReceiver.class.getName());
+        PsfAudioManager.registerMediaButtonEventReceiver(PsfControlResponder);
+
         mPreferences = PreferenceManager
 				.getDefaultSharedPreferences(this);
         reloadQueue();
@@ -114,11 +126,6 @@ public class PsfPlaybackService extends Service
         // system will relaunch it. Make sure it gets stopped again in that case.
         Message msg = mDelayedStopHandler.obtainMessage();
         mDelayedStopHandler.sendMessageDelayed(msg, IDLE_DELAY);
-
-        // Register phone ring state listener, pause playback when in call
-        TelephonyManager tm = (TelephonyManager) getSystemService(
-                Context.TELEPHONY_SERVICE);
-        tm.listen(phoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
 
         // Register sd card mount/unmount listener
         registerExternalStorageListener();
@@ -134,6 +141,7 @@ public class PsfPlaybackService extends Service
             Log.e(LOGTAG, "Service being destroyed while still playing.");
         }
         if (PsfPlayer != null) {
+        	cancelAudioFocus();
         	PsfPlayer.Stop();
         	PsfPlayer = null;
         }
@@ -152,6 +160,7 @@ public class PsfPlaybackService extends Service
         	unregisterReceiver(mHeadsetReceiver);
         	mHeadsetReceiver = null;
         }
+        PsfAudioManager.unregisterMediaButtonEventReceiver(PsfControlResponder);
 
     	Log.d(LOGTAG, "onDestroy, Release Wake Lock");
         mWakeLock.release();
@@ -162,6 +171,7 @@ public class PsfPlaybackService extends Service
 	public IBinder onBind(Intent arg0) {
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         mServiceInUse = true;
+        PsfAudioManager.registerMediaButtonEventReceiver(PsfControlResponder);
 		return binder;
 	}
 
@@ -169,6 +179,7 @@ public class PsfPlaybackService extends Service
     public void onRebind(Intent intent) {
         mDelayedStopHandler.removeCallbacksAndMessages(null);
         mServiceInUse = true;
+        PsfAudioManager.registerMediaButtonEventReceiver(PsfControlResponder);
     }
 
     @Override
@@ -219,22 +230,41 @@ public class PsfPlaybackService extends Service
             String action = intent.getAction();
             String cmd = intent.getStringExtra(CMDNAME);
             Log.v(LOGTAG, "onStartCommand " + action + " / " + cmd);
-
-            if (CMDTOGGLEPAUSE.equals(cmd) || TOGGLEPAUSE_ACTION.equals(action)) {
-                if (isPlaying()) {
-                    pause();
-                } else {
-                    play();
+            if (action != null && cmd != null) {
+                if (!action.equals(ACTION_CMD)) {
+                	Log.w(LOGTAG, "Unknown action");
                 }
-            } else if (CMDPAUSE.equals(cmd) || PAUSE_ACTION.equals(action)) {
-                pause();
-            } else if (CMDSTOP.equals(cmd)) {
-                stop();
-            } else if (CMDNEXT.equals(cmd)) {
-            	next();
+                else {
+	                if (CMDTOGGLEPAUSE.equals(cmd)) {
+	                    if (isPlaying()) {
+	                        pause();
+	                    } else {
+	                        play();
+	                    }
+	                }
+	                else if (CMDPLAY.equals(cmd)) {
+	                	if (!isPlaying()) {
+	                		play();
+	                	}
+	                }
+	                else if (CMDPAUSE.equals(cmd)) {
+	                	if (isPlaying()) {
+	                		pause();
+	                	}
+	                }
+	                else if (CMDSTOP.equals(cmd)) {
+	                    stop();
+	                }
+	                else if (CMDNEXT.equals(cmd)) {
+	                	next();
+	                }
+	                else if (CMDPREV.equals(cmd)) {
+	                	prev();
+	                }
+                }
             }
         }
-
+        PsfAudioManager.registerMediaButtonEventReceiver(PsfControlResponder);
         // make sure the service will shut down on its own if it was
         // just started but not bound to and nothing is playing
         mDelayedStopHandler.removeCallbacksAndMessages(null);
@@ -303,6 +333,7 @@ public class PsfPlaybackService extends Service
 				PsfPlayer.setHandler(mMediaplayerHandler);
 			}
 			if (PsfPlayer.isActive()) {
+				cancelAudioFocus();
 				PsfPlayer.Stop();
 			}
 			boolean ret;
@@ -322,6 +353,7 @@ public class PsfPlaybackService extends Service
 		synchronized(this) {
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "stop");
+				cancelAudioFocus();
 				PsfPlayer.Stop();
                 gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
@@ -334,6 +366,7 @@ public class PsfPlaybackService extends Service
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "pause");
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+				cancelAudioFocus();
                 gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
 			}
@@ -344,6 +377,7 @@ public class PsfPlaybackService extends Service
 		synchronized(this) {
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "play");
+				requestAudioFocus();
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPLAY);
 				notifyChange(PLAYSTATE_CHANGED);
 				notifyPlaying();
@@ -525,6 +559,7 @@ public class PsfPlaybackService extends Service
 
     public void quit() {
 		if (PsfPlayer != null) {
+			cancelAudioFocus();
 			PsfPlayer.Quit();
 		}
         gotoIdleState();
@@ -841,17 +876,6 @@ public class PsfPlaybackService extends Service
         ed.commit();
     }
 
-	private final PhoneStateListener phoneStateListener = new PhoneStateListener() {
-		public void onCallStateChanged(int state, String incomingNumber) {
-			if (state != TelephonyManager.CALL_STATE_IDLE){
-				if (isPlaying()) {
-					Log.d(LOGTAG, "phone call, pause playback");
-					pause();
-				}
-			}
-		}
-	};
-
 	// Start foreground service and show the notification
 	private void notifyPlaying() {
 		Intent notificationIntent = new Intent(this, PsfPlaybackActivity.class);
@@ -879,5 +903,53 @@ public class PsfPlaybackService extends Service
 	// Stop foreground service and remove the notification
 	private void notifyPauseStop() {
 		stopForeground(true);
+	}
+	
+	private final OnAudioFocusChangeListener AudioFocusChangeListener = new OnAudioFocusChangeListener() {
+		public void onAudioFocusChange(int focusChange) {
+			switch (focusChange) {
+			case AudioManager.AUDIOFOCUS_GAIN:
+				Log.d(LOGTAG, "Gain audio focus");
+				// Resume
+				play();
+				// TODO: reset volume
+				break;
+			case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+				Log.d(LOGTAG, "Loss transient audio focus");
+				// Pause
+				pause();
+				break;
+			case AudioManager.AUDIOFOCUS_LOSS:
+				Log.d(LOGTAG, "Permanent loss of audio focus");
+				// Stop
+				pause();
+				break;
+			case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+				Log.d(LOGTAG, "Duck loss audio focus");
+				// TODO: lower volume
+				break;
+			}
+		}
+	};
+	// Request audio focus
+	private void requestAudioFocus() {
+		// Request audio focus for playback
+		int result = PsfAudioManager.requestAudioFocus(AudioFocusChangeListener,
+		                                 // Use the music stream.
+		                                 AudioManager.STREAM_MUSIC,
+		                                 // Request permanent focus.
+		                                 AudioManager.AUDIOFOCUS_GAIN);
+		   
+		if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+			Log.d(LOGTAG, "Audio focus granted");
+		}
+		else {
+			Log.w(LOGTAG, "Audio focus not granted: " + result);
+		}
+	}
+
+	// Request audio focus	
+	private void cancelAudioFocus() {
+		PsfAudioManager.abandonAudioFocus(AudioFocusChangeListener);
 	}
 }
