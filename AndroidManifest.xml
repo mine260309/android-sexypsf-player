@@ -80,6 +80,12 @@
 
         <activity android:name="com.mine.psf.PsfSettingsActivity" />
 
+		<receiver android:name="com.mine.psf.RemoteControlReceiver">
+		    <intent-filter>
+		        <action android:name="android.intent.action.MEDIA_BUTTON" />
+		    </intent-filter>
+		</receiver>
+
         <!--  activity android:name="com.android.music.NowPlayingActivity">
             <intent-filter>
                 <action android:name="android.intent.action.PICK" />
