@@ -366,6 +366,7 @@ import android.widget.RemoteViews;
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "pause");
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+				cancelAudioFocus();
                 gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
 			}
@@ -904,6 +905,17 @@ import android.widget.RemoteViews;
 		stopForeground(true);
 	}
 	
+	private void pauseAndKeepAudioFocus() {
+		synchronized(this) {
+			if (PsfPlayer != null) {
+				Log.d(LOGTAG, "pause");
+				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
+                gotoIdleState();
+				notifyChange(PLAYSTATE_CHANGED);
+			}
+		}
+	}
+
 	private final OnAudioFocusChangeListener AudioFocusChangeListener = new OnAudioFocusChangeListener() {
 		public void onAudioFocusChange(int focusChange) {
 			switch (focusChange) {
@@ -916,7 +928,7 @@ import android.widget.RemoteViews;
 			case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
 				Log.d(LOGTAG, "Loss transient audio focus");
 				// Pause
-				pause();
+				pauseAndKeepAudioFocus();
 				break;
 			case AudioManager.AUDIOFOCUS_LOSS:
 				Log.d(LOGTAG, "Permanent loss of audio focus");
@@ -938,7 +950,7 @@ import android.widget.RemoteViews;
 		                                 AudioManager.STREAM_MUSIC,
 		                                 // Request permanent focus.
 		                                 AudioManager.AUDIOFOCUS_GAIN);
-		   
+
 		if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
 			Log.d(LOGTAG, "Audio focus granted");
 		}
