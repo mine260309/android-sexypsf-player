@@ -331,6 +331,9 @@ public class PsfPlaybackActivity extends Activity implements OnTouchListener,
 	    	if (mService.isPlaying()) {
 	    		mPauseButton.setImageResource(android.R.drawable.ic_media_pause);
 	    	}
+	    	else {
+	    		mPauseButton.setImageResource(android.R.drawable.ic_media_play);
+	    	}
 	    	switch (mService.getRepeatState()) {
 	    	case RepeatState.REPEAT_OFF:
 	    		mRepeatButton.setImageResource(R.drawable.ic_mp_repeat_off_btn);

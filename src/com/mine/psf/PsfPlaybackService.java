@@ -366,7 +366,6 @@ import android.widget.RemoteViews;
 			if (PsfPlayer != null) {
 				Log.d(LOGTAG, "pause");
 				PsfPlayer.Play(MineSexyPsfPlayer.PSFPAUSE);
-				cancelAudioFocus();
                 gotoIdleState();
 				notifyChange(PLAYSTATE_CHANGED);
 			}
