@@ -64,7 +64,7 @@ import android.widget.RemoteViews;
     public static final int PLAYBACKSERVICE_STATUS = 1;
 
     private BroadcastReceiver mUnmountReceiver = null;
-	private BroadcastReceiver mHeadsetReceiver = null;
+	private BroadcastReceiver mNoisyReceiver = null;
     private WakeLock mWakeLock;
     private int mServiceStartId = -1;
     private AudioManager PsfAudioManager;
@@ -130,8 +130,10 @@ import android.widget.RemoteViews;
         // Register sd card mount/unmount listener
         registerExternalStorageListener();
 
-        // Register headset unplug listener;
-        registerHeadsetListener();
+        // Register noisy listener, it should
+        // 1) Playing with headset, unplug headset, sound should be paused;
+        // 2) Playing with speaker, plug headset, sound should keep playing.
+        registerNoisyListener();
     }
 
     @Override
@@ -156,9 +158,9 @@ import android.widget.RemoteViews;
             mUnmountReceiver = null;
         }
 
-        if (mHeadsetReceiver != null) {
-        	unregisterReceiver(mHeadsetReceiver);
-        	mHeadsetReceiver = null;
+        if (mNoisyReceiver != null) {
+        	unregisterReceiver(mNoisyReceiver);
+        	mNoisyReceiver = null;
         }
         PsfAudioManager.unregisterMediaButtonEventReceiver(PsfControlResponder);
 
@@ -653,26 +655,20 @@ import android.widget.RemoteViews;
         }
     }
     
-    private void registerHeadsetListener() {
-        if (mHeadsetReceiver == null) {
-        	mHeadsetReceiver = new BroadcastReceiver() {
+    private void registerNoisyListener() {
+        if (mNoisyReceiver == null) {
+        	mNoisyReceiver = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     String action = intent.getAction();
-                    if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
-                    	int state = intent.getIntExtra("state", 1);
-                    	if (state == 0) {
-                    		Log.d(LOGTAG, "Headset unplugged, pause");
-                    		pause();
-                    	}
-                    	else {
-                    		Log.d(LOGTAG, "Headset plugged");
-                    	}
+                    if (action.equals(AudioManager.ACTION_AUDIO_BECOMING_NOISY)) {
+                		Log.d(LOGTAG, "To become noisy, pause");
+                		pause();
                     }
                 }
             };
-            IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
-            registerReceiver(mHeadsetReceiver, filter);
+            IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            registerReceiver(mNoisyReceiver, filter);
         }
     }
 
