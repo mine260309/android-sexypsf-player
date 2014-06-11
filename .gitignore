@@ -26,3 +26,9 @@ toPost/**
 
 # PDT-specific
 .buildpath
+
+# NDK built files
+libs/*
+
+# Java built files
+obj/*
