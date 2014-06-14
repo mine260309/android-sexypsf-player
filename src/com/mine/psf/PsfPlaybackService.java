@@ -52,6 +52,7 @@ import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.RemoteViews;
+import android.widget.Toast;
 
 /**
  * Provides background psf playback capabilities, allowing the
@@ -85,6 +86,7 @@ import android.widget.RemoteViews;
     public static final String META_CHANGED = "com.mine.psf.metachanged";
 	public static final String PLAYBACK_COMPLETE = "com.mine.psf.playbackcomplete";
 	public static final String PLAYSTATE_CHANGED = "com.mine.psf.playstatechanged";
+	//public static final String PLAYSTATE_FAILED = "com.mine.psf.playstatefailed";
 	public static final String REPEATSTATE_CHANGED = "com.mine.psf.repeatstatechanged";
 
 	public static final int MSG_JUMP_NEXT = STATE_MSG_MAX + 1;
@@ -346,6 +348,7 @@ import android.widget.RemoteViews;
 			}
 			else {
 				Log.d(LOGTAG, "openFile: " + path + " failed!");
+            	Toast.makeText(this, R.string.psf_open_fail, Toast.LENGTH_LONG).show();
 			}
             return ret;
 		}
@@ -570,8 +573,8 @@ import android.widget.RemoteViews;
 
     private void notifyChange(String what) {
         Intent i = new Intent(what);
-        i.putExtra("album",getAlbumName());
-        i.putExtra("track", getTrackName());
+        //i.putExtra("album", getAlbumName());
+        //i.putExtra("track", getTrackName());
         sendBroadcast(i);
     }
 

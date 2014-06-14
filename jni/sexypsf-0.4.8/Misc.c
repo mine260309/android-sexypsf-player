@@ -327,8 +327,8 @@ static PSFINFO *LoadPSF(char *path, int level, int type) // Type==1 for just inf
 	     tmpfn=GetFileWithBase(path,value);
 	     if(!(tmpi=LoadPSF(tmpfn,level+1,0))) 
 	     {
-	      free(key);
-	      free(value);
+	      //free(key);
+	      //free(value); // key and value will be freed by FreeTags(psfi->tags)
 	      free(tmpfn);
  	      if(!level) free(out);
 	      fclose(fp);
