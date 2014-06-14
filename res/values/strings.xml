@@ -61,11 +61,12 @@
         This may be the first time you\'ve run this app.\n
         Please set the directory where your PSF files are held.\n
         The default is /mnt/sdcard (external storage).</string>
-        
+
     <string name="pref_email_title">Feedback (email)</string>
     <string name="pref_email_summary">Issues, Suggestions? Send me email~</string>
 
     <!-- Toast strings -->
+    <string name="psf_open_fail">Psf open failed, file corrupted or psflib is missing</string>
     <string name="playlist_empty_error">Playlist Empty!\nPlease select a direcotry contains psf files.</string>
 </resources>
 
