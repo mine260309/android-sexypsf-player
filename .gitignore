@@ -1,34 +1,48 @@
-*.pydevproject
+# Android generated
+bin
+gen
+lint.xml
+
+# IntelliJ IDEA
+.idea
+*.iml
+*.ipr
+*.iws
+classes
+gen-external-apklibs
+
+# Eclipse
 .project
-.metadata
-bin/**
-tmp/**
-tmp/**/*
-*.tmp
-*.bak
-*.swp
-*~.nib
-local.properties
 .classpath
-.settings/
-.loadpath
-gen/**
-toPost/**
+.settings
+.checkstyle
 
-# External tool builders
-.externalToolBuilders/
+# Gradle
+.gradle
+build
+out
 
-# Locally stored "Eclipse launch configurations"
-*.launch
+# Maven
+target
+release.properties
+pom.xml.*
 
-# CDT-specific
-.cproject
+# Ant
+ant.properties
+local.properties
+proguard.cfg
+proguard-project.txt
 
-# PDT-specific
-.buildpath
+# Other
+.DS_Store
+dist
+tmp
 
 # NDK built files
 libs/*
 
 # Java built files
 obj/*
+
+# My post files
+toPost/**
