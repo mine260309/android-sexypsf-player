@@ -298,7 +298,7 @@ public class PsfFileBrowserActivity extends Activity
         			((PsfPlaybackService.ServiceBinder)service).getService();
 
         	String[] playList = psfService.getPlaylist();
-        	if (focusListPosition >= 0 && focusListPosition < playList.length) {
+        	if (playList != null && focusListPosition >= 0 && focusListPosition < playList.length) {
 	        	String mediaPath = playList[focusListPosition];
 	        	File mediaFile = new File(mediaPath);
 	        	mediaPath = mediaFile.getParent();
