@@ -49,6 +49,10 @@ public class PsfUtils {
   private static HashMap<Context, ServiceBinder> sConnectionMap =
       new HashMap<Context, ServiceBinder>();
 
+  public static boolean isServiceConnected() {
+    return sService != null;
+  }
+
   public static ServiceToken bindToService(Activity context) {
     return bindToService(context, null);
   }

@@ -36,11 +36,27 @@
         android:label="@string/minepsfplayer_app"
         android:allowBackup="true" >
 
-        <activity android:name="com.mine.psf.PsfFileBrowserActivity">
+        <activity android:name="com.mine.psf.PsfFileBrowserActivity"
+                  android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file"/>
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.psf" />
+                <data android:pathPattern=".*\\.minipsf" />
+                <data android:pathPattern=".*\\.psf2" />
+                <data android:pathPattern=".*\\.minipsf2" />
+                <data android:pathPattern=".*\\.PSF" />
+                <data android:pathPattern=".*\\.MINIPSF" />
+                <data android:pathPattern=".*\\.PSF2" />
+                <data android:pathPattern=".*\\.MINIPSF2" />
+                <data android:host="*" />
             </intent-filter>
         </activity>
 
@@ -62,16 +78,6 @@
                 android:launchMode="singleTask"
                 android:clearTaskOnLaunch="true"
                 android:excludeFromRecents="true" >
-            <!-- intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content"/>
-                <data android:scheme="file"/>
-                <data android:mimeType="audio/*"/>
-                <data android:mimeType="application/ogg"/>
-                <data android:mimeType="application/x-ogg"/>
-                <data android:mimeType="application/itunes"/>
-            </intent-filter -->
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>

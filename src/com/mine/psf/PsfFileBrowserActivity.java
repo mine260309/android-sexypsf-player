@@ -40,6 +40,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.method.LinkMovementMethod;
@@ -75,6 +76,8 @@ public class PsfFileBrowserActivity extends Activity
   private int focusListPosition = -1;
   private int mStepsBack; // handle BACK key press, up one level dir instead of exit the activity
 
+  private final Handler handler = new Handler();
+
   /**
    * Called when the activity is first created.
    */
@@ -82,7 +85,7 @@ public class PsfFileBrowserActivity extends Activity
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     c = this;
-    handleFirstTimeRun();
+    mToken = PsfUtils.bindToService(this, this);
 
     mStepsBack = 0;
     setContentView(R.layout.psffile_browser_activity);
@@ -90,16 +93,53 @@ public class PsfFileBrowserActivity extends Activity
     MusicListView = (ListView) findViewById(R.id.psffilelist);
     CurDirView = (TextView) findViewById(R.id.directory_text);
 
-    Bundle extras = getIntent().getExtras();
-    if (extras != null) {
-      // If extras contains current list pos,
-      // we should focus on the item after connected to the service
-      focusListPosition = extras.getInt(
-          getString(R.string.extra_current_list_position));
+    Intent intent = getIntent();
+    if (intent.getAction() == Intent.ACTION_VIEW) {
+      String fullPath = intent.getData().getPath();
+      String fileName = intent.getData().getLastPathSegment();
+      String path = fullPath.substring(0, fullPath.lastIndexOf(fileName));
+
+      browseToDir(path);
+      String[] list = (String[]) playList.toArray(new String[playList.size()]);
+      int i;
+      for (i = 0; i < list.length; ++i) {
+        if (fullPath.equals(list[i])) {
+          final String[] threadList = list;
+          final int threadIndex = i;
+          focusListPosition = i;
+          final Runnable playRunnable = new Runnable() {
+            @Override
+            public void run() {
+              if (!PsfUtils.isServiceConnected()) {
+                // Wait until the service is connected
+                handler.postDelayed(this, 50);
+                return;
+              }
+              PsfUtils.playAll(threadList, threadIndex);
+              startActivity(new Intent(getApplicationContext(),
+                  PsfPlaybackActivity.class));
+            }
+          };
+          handler.postDelayed(playRunnable, 50);
+          break;
+        }
+      }
+      if (i == list.length) {
+        Log.e(LOGTAG, "Failed to get the file: " + fileName);
+      }
     } else {
-      String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
-      Log.d(LOGTAG, "Media Path is: " + mediaPath);
-      browseToDir(mediaPath);
+      handleFirstTimeRun();
+      Bundle extras = intent.getExtras();
+      if (extras != null) {
+        // If extras contains current list pos,
+        // we should focus on the item after connected to the service
+        focusListPosition = extras.getInt(
+            getString(R.string.extra_current_list_position));
+      } else {
+        String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
+        Log.d(LOGTAG, "Media Path is: " + mediaPath);
+        browseToDir(mediaPath);
+      }
     }
 
     MusicListView.setOnItemClickListener(new OnItemClickListener() {
@@ -132,7 +172,6 @@ public class PsfFileBrowserActivity extends Activity
         }
       }
     });
-    mToken = PsfUtils.bindToService(this, this);
 
     // Register listener on psf root dir change
     SharedPreferences prefs =
