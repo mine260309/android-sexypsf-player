@@ -35,82 +35,84 @@ import android.view.View;
 import android.widget.TextView;
 
 public class PsfUtils {
-    private static final String LOGTAG = "PsfUtils";
-    
-    public static class ServiceToken {
-        ContextWrapper mWrappedContext;
-        ServiceToken(ContextWrapper context) {
-            mWrappedContext = context;
-        }
+  private static final String LOGTAG = "PsfUtils";
+
+  public static class ServiceToken {
+    ContextWrapper mWrappedContext;
+
+    ServiceToken(ContextWrapper context) {
+      mWrappedContext = context;
+    }
+  }
+
+  public static PsfPlaybackService sService = null;
+  private static HashMap<Context, ServiceBinder> sConnectionMap =
+      new HashMap<Context, ServiceBinder>();
+
+  public static ServiceToken bindToService(Activity context) {
+    return bindToService(context, null);
+  }
+
+  public static ServiceToken bindToService(Activity context,
+                                           ServiceConnection callback) {
+    Activity realActivity = context.getParent();
+    if (realActivity == null) {
+      realActivity = context;
+    }
+    ContextWrapper cw = new ContextWrapper(realActivity);
+    cw.startService(new Intent(cw, PsfPlaybackService.class));
+    ServiceBinder sb = new ServiceBinder(callback);
+    if (cw.bindService((new Intent()).setClass(cw, PsfPlaybackService.class), sb, 0)) {
+      sConnectionMap.put(cw, sb);
+      return new ServiceToken(cw);
+    }
+    Log.e(LOGTAG, "Failed to bind to service");
+    return null;
+  }
+
+  public static void unbindFromService(ServiceToken token) {
+    if (token == null) {
+      Log.e(LOGTAG, "Trying to unbind with null token");
+      return;
+    }
+    ContextWrapper cw = token.mWrappedContext;
+    ServiceBinder sb = sConnectionMap.remove(cw);
+    if (sb == null) {
+      Log.e(LOGTAG, "Trying to unbind for unknown Context");
+      return;
+    }
+    cw.unbindService(sb);
+    if (sConnectionMap.isEmpty()) {
+      // presumably there is nobody interested in the service at this point,
+      // so don't hang on to the ServiceConnection
+      sService = null;
+    }
+  }
+
+  private static class ServiceBinder implements ServiceConnection {
+    ServiceConnection mCallback;
+
+    ServiceBinder(ServiceConnection callback) {
+      mCallback = callback;
     }
 
-    public static PsfPlaybackService sService = null;
-    private static HashMap<Context, ServiceBinder> sConnectionMap =
-    	new HashMap<Context, ServiceBinder>();
-
-    public static ServiceToken bindToService(Activity context) {
-        return bindToService(context, null);
+    public void onServiceConnected(ComponentName className, android.os.IBinder service) {
+      sService = ((PsfPlaybackService.ServiceBinder) service).getService();
+      if (mCallback != null) {
+        mCallback.onServiceConnected(className, service);
+      }
     }
 
-    public static ServiceToken bindToService(Activity context,
-    		ServiceConnection callback) {
-        Activity realActivity = context.getParent();
-        if (realActivity == null) {
-            realActivity = context;
-        }
-        ContextWrapper cw = new ContextWrapper(realActivity);
-        cw.startService(new Intent(cw, PsfPlaybackService.class));
-        ServiceBinder sb = new ServiceBinder(callback);
-        if (cw.bindService((new Intent()).setClass(cw, PsfPlaybackService.class), sb, 0)) {
-            sConnectionMap.put(cw, sb);
-            return new ServiceToken(cw);
-        }
-        Log.e(LOGTAG, "Failed to bind to service");
-        return null;
+    public void onServiceDisconnected(ComponentName className) {
+      if (mCallback != null) {
+        mCallback.onServiceDisconnected(className);
+      }
+      sService = null;
     }
+  }
 
-    public static void unbindFromService(ServiceToken token) {
-        if (token == null) {
-            Log.e(LOGTAG, "Trying to unbind with null token");
-            return;
-        }
-        ContextWrapper cw = token.mWrappedContext;
-        ServiceBinder sb = sConnectionMap.remove(cw);
-        if (sb == null) {
-            Log.e(LOGTAG, "Trying to unbind for unknown Context");
-            return;
-        }
-        cw.unbindService(sb);
-        if (sConnectionMap.isEmpty()) {
-            // presumably there is nobody interested in the service at this point,
-            // so don't hang on to the ServiceConnection
-        	sService = null;
-        }
-    }
-    
-    private static class ServiceBinder implements ServiceConnection {
-        ServiceConnection mCallback;
-        ServiceBinder(ServiceConnection callback) {
-            mCallback = callback;
-        }
-        
-        public void onServiceConnected(ComponentName className, android.os.IBinder service) {
-        	sService = ((PsfPlaybackService.ServiceBinder)service).getService();
-            if (mCallback != null) {
-                mCallback.onServiceConnected(className, service);
-            }
-        }
-        
-        public void onServiceDisconnected(ComponentName className) {
-            if (mCallback != null) {
-                mCallback.onServiceDisconnected(className);
-            }
-            sService = null;
-        }
-    }
-    
-    // Comment this function for now since it's not used
-    // Will re-enable it if this app needs to open a single file
+  // Comment this function for now since it's not used
+  // Will re-enable it if this app needs to open a single file
     /*
     public static void play(Context context, String psfFile) {
     	if (sService != null) {
@@ -120,86 +122,87 @@ public class PsfUtils {
     	}
     }
 	*/
-    public static void stop(Context context) {
-    	if (sService != null) {
-    		sService.stop();
-    	}
+  public static void stop(Context context) {
+    if (sService != null) {
+      sService.stop();
     }
+  }
 
-    public static void playAll(String[] playList, int pos) {
-    	if (sService != null) {
-    		sService.setPlaylist(playList, false);
-    		sService.play(pos);
-    	}
+  public static void playAll(String[] playList, int pos) {
+    if (sService != null) {
+      sService.setPlaylist(playList, false);
+      sService.play(pos);
     }
-    
-    public static void shuffleAll(String[] playList) {
-    	if (sService != null) {
-    		sService.setPlaylist(playList, true);
-    		sService.play(0);
-    	}
-    }
-    
-    public static void quit() {
-    	if (sService != null) {
-    		sService.stop();
-    		sService.quit();
-    	}
-    }
+  }
 
-    static void updateNowPlaying(Activity a) {
-        View nowPlayingView = a.findViewById(R.id.nowplaying);
-        if (nowPlayingView == null) {
-            return;
+  public static void shuffleAll(String[] playList) {
+    if (sService != null) {
+      sService.setPlaylist(playList, true);
+      sService.play(0);
+    }
+  }
+
+  public static void quit() {
+    if (sService != null) {
+      sService.stop();
+      sService.quit();
+    }
+  }
+
+  static void updateNowPlaying(Activity a) {
+    View nowPlayingView = a.findViewById(R.id.nowplaying);
+    if (nowPlayingView == null) {
+      return;
+    }
+    if (PsfUtils.sService != null) {
+      TextView title = (TextView) nowPlayingView.findViewById(R.id.title);
+      TextView artist = (TextView) nowPlayingView.findViewById(R.id.artist);
+      title.setText(PsfUtils.sService.getTrackName());
+      String artistName = PsfUtils.sService.getArtistName();
+      if (artistName.equals("")) {
+        artistName = a.getString(R.string.unknown_artist_name);
+      }
+      artist.setText(artistName);
+
+      nowPlayingView.setVisibility(View.VISIBLE);
+      nowPlayingView.setOnClickListener(new View.OnClickListener() {
+        public void onClick(View v) {
+          Context c = v.getContext();
+          c.startActivity(new Intent(c, PsfPlaybackActivity.class));
         }
-        if (PsfUtils.sService != null) {
-        	TextView title = (TextView) nowPlayingView.findViewById(R.id.title);
-        	TextView artist = (TextView) nowPlayingView.findViewById(R.id.artist);
-        	title.setText(PsfUtils.sService.getTrackName());
-        	String artistName = PsfUtils.sService.getArtistName();
-        	if (artistName.equals("")) {
-        		artistName = a.getString(R.string.unknown_artist_name);
-        	}
-        	artist.setText(artistName);
-
-        	nowPlayingView.setVisibility(View.VISIBLE);
-        	nowPlayingView.setOnClickListener(new View.OnClickListener() {
-        		public void onClick(View v) {
-        			Context c = v.getContext();
-        			c.startActivity(new Intent(c, PsfPlaybackActivity.class));
-        		}});
-        	return;
-        }
-        nowPlayingView.setVisibility(View.GONE);
+      });
+      return;
     }
-    
-    
-    /*  Try to use String.format() as little as possible, because it creates a
-     *  new Formatter every time you call it, which is very inefficient.
-     *  Reusing an existing Formatter more than tripled the speed of
-     *  makeTimeString().
-     *  This Formatter/StringBuilder are also used by makeAlbumSongsLabel()
-     */
-    private static StringBuilder sFormatBuilder = new StringBuilder();
-    private static Formatter sFormatter = new Formatter(sFormatBuilder, Locale.getDefault());
-    private static final Object[] sTimeArgs = new Object[5];
+    nowPlayingView.setVisibility(View.GONE);
+  }
 
-    public static String makeTimeString(Context context, long secs) {
-        String durationformat = context.getString(
-                secs < 3600 ? R.string.durationformatshort : R.string.durationformatlong);
+
+  /*  Try to use String.format() as little as possible, because it creates a
+   *  new Formatter every time you call it, which is very inefficient.
+   *  Reusing an existing Formatter more than tripled the speed of
+   *  makeTimeString().
+   *  This Formatter/StringBuilder are also used by makeAlbumSongsLabel()
+   */
+  private static StringBuilder sFormatBuilder = new StringBuilder();
+  private static Formatter sFormatter = new Formatter(sFormatBuilder, Locale.getDefault());
+  private static final Object[] sTimeArgs = new Object[5];
+
+  public static String makeTimeString(Context context, long secs) {
+    String durationformat = context.getString(
+        secs < 3600 ? R.string.durationformatshort : R.string.durationformatlong);
         
         /* Provide multiple arguments so the format can be changed easily
          * by modifying the xml.
          */
-        sFormatBuilder.setLength(0);
+    sFormatBuilder.setLength(0);
 
-        final Object[] timeArgs = sTimeArgs;
-        timeArgs[0] = secs / 3600;
-        timeArgs[1] = secs / 60;
-        timeArgs[2] = (secs / 60) % 60;
-        timeArgs[3] = secs;
-        timeArgs[4] = secs % 60;
+    final Object[] timeArgs = sTimeArgs;
+    timeArgs[0] = secs / 3600;
+    timeArgs[1] = secs / 60;
+    timeArgs[2] = (secs / 60) % 60;
+    timeArgs[3] = secs;
+    timeArgs[4] = secs % 60;
 
-        return sFormatter.format(durationformat, timeArgs).toString();
-    }
+    return sFormatter.format(durationformat, timeArgs).toString();
+  }
 }

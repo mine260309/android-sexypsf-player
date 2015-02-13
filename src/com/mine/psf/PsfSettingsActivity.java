@@ -25,25 +25,25 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 
 public class PsfSettingsActivity extends PreferenceActivity {
-	
-	@Override
-	protected void onCreate(Bundle icicle) {
-		
-		super.onCreate(icicle);
-		addPreferencesFromResource(R.xml.preferences);
-		
-		Bundle extras = getIntent().getExtras(); 
-		if (extras != null) {
-			boolean directShowPsfDialog = extras.getBoolean(
-					getString(R.string.extra_direct_show_dir_dialog));
-			if (directShowPsfDialog) {
-				PreferenceScreen screen = 
-						(PreferenceScreen) findPreference(
-								getString(R.string.pref_settings));
-				int pos = findPreference(
-						getString(R.string.key_psf_root_dir)).getOrder();
-				screen.onItemClick(null, null, pos, 0);
-			}
-		}
-	}
+
+  @Override
+  protected void onCreate(Bundle icicle) {
+
+    super.onCreate(icicle);
+    addPreferencesFromResource(R.xml.preferences);
+
+    Bundle extras = getIntent().getExtras();
+    if (extras != null) {
+      boolean directShowPsfDialog = extras.getBoolean(
+          getString(R.string.extra_direct_show_dir_dialog));
+      if (directShowPsfDialog) {
+        PreferenceScreen screen =
+            (PreferenceScreen) findPreference(
+                getString(R.string.pref_settings));
+        int pos = findPreference(
+            getString(R.string.key_psf_root_dir)).getOrder();
+        screen.onItemClick(null, null, pos, 0);
+      }
+    }
+  }
 }

@@ -23,143 +23,147 @@ import java.util.concurrent.Semaphore;
 //import android.util.Log;
 
 public class MineAudioCircularBuffer {
-//	private static String LOGTAG = "MineCircularBuffer";
-    private byte[] m_buffer;
-    private int m_len;
-    private int put_index, get_index;
-    private Semaphore put, get;
-    private boolean m_EndFlag;
+  //	private static String LOGTAG = "MineCircularBuffer";
+  private byte[] m_buffer;
+  private int m_len;
+  private int put_index, get_index;
+  private Semaphore put, get;
+  private boolean m_EndFlag;
 
-    public class BufferChunk {
-    	public byte[] buffer;
-    	public int index;
-    	public int len;
-    }
-    private BufferChunk writeBufferChunk;
-    private BufferChunk readBufferChunk;
+  public class BufferChunk {
+    public byte[] buffer;
+    public int index;
+    public int len;
+  }
 
-    public MineAudioCircularBuffer(int len){
-    	init(len);
-    }
-    
-    public void Discard() {
-    	int avail = get.availablePermits();
-    	try {
-			get.acquire(avail);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-    	put.release(avail);
-    	m_EndFlag = false;
-    	put_index = 0; get_index = 0;
-    }
-    
-    public void init(int len) {
-    	m_buffer = new byte[len];
-    	m_len = len;
-    	put_index = 0; get_index = 0;
-    	put = new Semaphore(m_len);
-    	get = new Semaphore(0);
-    	m_EndFlag = false;
-    	
-    	writeBufferChunk = new BufferChunk();
-    	readBufferChunk = new BufferChunk();
-    	writeBufferChunk.buffer = readBufferChunk.buffer = m_buffer;
-    }
+  private BufferChunk writeBufferChunk;
+  private BufferChunk readBufferChunk;
 
-    // Re-init the semaphore but re-use buffer
-    public void reInit() {
-    	Discard();
-    	put = new Semaphore(m_len);
-    	get = new Semaphore(0);
-    }
+  public MineAudioCircularBuffer(int len) {
+    init(len);
+  }
 
-    // Discard the buffer and release all the Semaphore
-    public void destroy() {
-    	Discard();
-    	put.release(m_len);
-    	get.release(m_len);
+  public void Discard() {
+    int avail = get.availablePermits();
+    try {
+      get.acquire(avail);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
     }
-    
+    put.release(avail);
+    m_EndFlag = false;
+    put_index = 0;
+    get_index = 0;
+  }
 
-    public boolean getEndFlag() {return m_EndFlag;}
-    public void setAudioBufferEnd()
-    {
-    	m_EndFlag = true;
+  public void init(int len) {
+    m_buffer = new byte[len];
+    m_len = len;
+    put_index = 0;
+    get_index = 0;
+    put = new Semaphore(m_len);
+    get = new Semaphore(0);
+    m_EndFlag = false;
+
+    writeBufferChunk = new BufferChunk();
+    readBufferChunk = new BufferChunk();
+    writeBufferChunk.buffer = readBufferChunk.buffer = m_buffer;
+  }
+
+  // Re-init the semaphore but re-use buffer
+  public void reInit() {
+    Discard();
+    put = new Semaphore(m_len);
+    get = new Semaphore(0);
+  }
+
+  // Discard the buffer and release all the Semaphore
+  public void destroy() {
+    Discard();
+    put.release(m_len);
+    get.release(m_len);
+  }
+
+
+  public boolean getEndFlag() {
+    return m_EndFlag;
+  }
+
+  public void setAudioBufferEnd() {
+    m_EndFlag = true;
+  }
+
+  public BufferChunk GetWriteBufferPrepare(int requiredWriteLength) {
+    int avail = put.availablePermits();
+    int put_len = (avail > requiredWriteLength) ? (requiredWriteLength) : (avail);
+    if (put_len == 0) {
+      // if no available buffer, let's require
+      put_len = requiredWriteLength;
     }
- 
-    public BufferChunk GetWriteBufferPrepare(int requiredWriteLength) {
-    	int avail = put.availablePermits();
-    	int put_len = (avail>requiredWriteLength) ? (requiredWriteLength) : (avail);
-    	if (put_len == 0) {
-    		// if no available buffer, let's require
-    		put_len = requiredWriteLength;
-    	}
-    	if (put_len + put_index > m_len) {
-    	    // reach the end, set put_len to the end
-    		put_len = m_len - put_index;
-    	}
+    if (put_len + put_index > m_len) {
+      // reach the end, set put_len to the end
+      put_len = m_len - put_index;
+    }
 //    	Log.v(LOGTAG, "GetWriteBuffer: req " + requiredWriteLength +
 //    			", avail " + avail + ", put_index " + put_index +", put_len " + put_len);
-    	try {
-			put.acquire(put_len);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-    	writeBufferChunk.index = put_index;
-    	writeBufferChunk.len = put_len;
-    	put_index += put_len;
+    try {
+      put.acquire(put_len);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    writeBufferChunk.index = put_index;
+    writeBufferChunk.len = put_len;
+    put_index += put_len;
 //    	Log.d(LOGTAG, "Move put_index with "+put_len);
-    	if (put_index >= m_len) {
-    		put_index = 0;
+    if (put_index >= m_len) {
+      put_index = 0;
 //    		Log.d(LOGTAG, "Move put_index back to 0");
-    	}
-    	return writeBufferChunk;
     }
-    
-    public void GetWriteBufferDone(int writeBufferSize) {
-    	get.release(writeBufferSize);
+    return writeBufferChunk;
+  }
+
+  public void GetWriteBufferDone(int writeBufferSize) {
+    get.release(writeBufferSize);
+  }
+
+  public BufferChunk GetReadBufferPrepare(int requiredReadLength)
+      throws InterruptedException {
+    int get_len;
+    int avail = get.availablePermits();
+    if (avail != 0) {
+      get_len = avail > requiredReadLength ? requiredReadLength : avail;
+    } else {
+      get_len = requiredReadLength;
     }
-    
-    public BufferChunk GetReadBufferPrepare(int requiredReadLength)
-    		throws InterruptedException {
-    	int get_len;
-    	int avail = get.availablePermits();
-    	if(avail != 0) {
-    		get_len = avail>requiredReadLength?requiredReadLength:avail;
-    	}
-    	else {
-    		get_len = requiredReadLength;
-    	}
-    	if (get_len + get_index > m_len) {
-    		// reach the end, set get_len to the end
-    		get_len = m_len - get_index;
-    	}
+    if (get_len + get_index > m_len) {
+      // reach the end, set get_len to the end
+      get_len = m_len - get_index;
+    }
 //    	Log.v(LOGTAG, "GetReadBuffer: req " + requiredReadLength +
 //    			", avail " + avail + ", get_index " + get_index +", gett_len " + get_len);
 
-    	try {
-			get.acquire(get_len);
-		} catch (InterruptedException e) {
-			// if it's interrupted, it means there's no more audio data
-			throw e;
-		}
-    	readBufferChunk.index = get_index;
-    	readBufferChunk.len = get_len;
-    	get_index += get_len;
+    try {
+      get.acquire(get_len);
+    } catch (InterruptedException e) {
+      // if it's interrupted, it means there's no more audio data
+      throw e;
+    }
+    readBufferChunk.index = get_index;
+    readBufferChunk.len = get_len;
+    get_index += get_len;
 //    	Log.v(LOGTAG, "Move get_index with "+get_len);
-    	if (get_index >= m_len) {
-    		get_index = 0;
+    if (get_index >= m_len) {
+      get_index = 0;
 //    		Log.v(LOGTAG, "Move get_index back to 0");
-    	}
-    	return readBufferChunk;
     }
-    
-    public void GetReadBufferDone(int readBufferSize) {
-    	put.release(readBufferSize);
-    }
-    
-    public int GetBufferAvailable() {
-    	return get.availablePermits();
-    }
+    return readBufferChunk;
+  }
+
+  public void GetReadBufferDone(int readBufferSize) {
+    put.release(readBufferSize);
+  }
+
+  public int GetBufferAvailable() {
+    return get.availablePermits();
+  }
 }

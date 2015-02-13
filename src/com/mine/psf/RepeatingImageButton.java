@@ -24,17 +24,17 @@ import android.widget.ImageButton;
 
 public class RepeatingImageButton extends ImageButton {
 
-	public RepeatingImageButton(Context context) {
-		this(context, null);
-	}
+  public RepeatingImageButton(Context context) {
+    this(context, null);
+  }
 
-    public RepeatingImageButton(Context context, AttributeSet attrs) {
-        this(context, attrs, android.R.attr.imageButtonStyle);
-    }
+  public RepeatingImageButton(Context context, AttributeSet attrs) {
+    this(context, attrs, android.R.attr.imageButtonStyle);
+  }
 
-    public RepeatingImageButton(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
-        setFocusable(true);
-        setLongClickable(true);
-    }
+  public RepeatingImageButton(Context context, AttributeSet attrs, int defStyle) {
+    super(context, attrs, defStyle);
+    setFocusable(true);
+    setLongClickable(true);
+  }
 }

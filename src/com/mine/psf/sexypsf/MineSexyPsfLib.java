@@ -19,78 +19,100 @@
 package com.mine.psf.sexypsf;
 
 public class MineSexyPsfLib {
-	/** this is used to load the 'sexypsf' library on application
-	 * startup.
-	 */
-	static {
-		System.loadLibrary("sexypsf");
-	}
+  /** this is used to load the 'sexypsf' library on application
+   * startup.
+   */
+  static {
+    System.loadLibrary("sexypsf");
+  }
 
-	/** The native function implemented by sexypsf.
-	 * It's used to open a psf file.
-	 */
-	public static native boolean sexypsfopen(String filename, int type);
+  /**
+   * The native function implemented by sexypsf.
+   * It's used to open a psf file.
+   */
+  public static native boolean sexypsfopen(String filename, int type);
 
-	/** Native function to play a opened psf file */
-	public static native void sexypsfplay();
+  /**
+   * Native function to play a opened psf file
+   */
+  public static native void sexypsfplay();
 
-	/** Native function to pause the playback */
-	public static native void sexypsfpause(boolean pause);
+  /**
+   * Native function to pause the playback
+   */
+  public static native void sexypsfpause(boolean pause);
 
-	/** Native function to seek the playback */
-	public static native void sexypsfseek(int seek, int mode);
+  /**
+   * Native function to seek the playback
+   */
+  public static native void sexypsfseek(int seek, int mode);
 
-	/** Native function to stop a the playback */
-	public static native void sexypsfstop();
+  /**
+   * Native function to stop a the playback
+   */
+  public static native void sexypsfstop();
 
-	/** Native function to get the audio data from sexypsf */
-	public static native int sexypsfputaudiodata(byte[] arr, int size);
+  /**
+   * Native function to get the audio data from sexypsf
+   */
+  public static native int sexypsfputaudiodata(byte[] arr, int size);
 
-	/** Native function to get the audio data from sexypsf */
-	public static native int sexypsfputaudiodataindex(byte[] arr, int index, int size);
-	
-	/** Native function to get the psf info from sexypsf */
-	public static native PsfInfo sexypsfgetpsfinfo(String filename);
-	
-	/** Native function to get the current pos */
-	public static native int sexypsfgetpos();
-	
-	/** Native function to release all the resources */
-	public static native void sexypsfquit();
-	
-	/** Native function to pause the playback */
-	public static native void sexypsfsetinfiniteloop(boolean loop);
+  /**
+   * Native function to get the audio data from sexypsf
+   */
+  public static native int sexypsfputaudiodataindex(byte[] arr, int index, int size);
+
+  /**
+   * Native function to get the psf info from sexypsf
+   */
+  public static native PsfInfo sexypsfgetpsfinfo(String filename);
+
+  /**
+   * Native function to get the current pos
+   */
+  public static native int sexypsfgetpos();
+
+  /**
+   * Native function to release all the resources
+   */
+  public static native void sexypsfquit();
+
+  /**
+   * Native function to pause the playback
+   */
+  public static native void sexypsfsetinfiniteloop(boolean loop);
 }
 
 class PsfInfo {
-	public int duration;
-	public String title;
-	public String artist;
-	public String game;
-	public String copyright;
-	
-	public PsfInfo(int duration, String title,
-			String artist, String game, String copyright) {
-		this.duration = duration;
-		this.title = title;
-		this.artist = artist;
-		this.game = game;
-		this.copyright = copyright;
-		postInit();
-	}
-	// Verify and make sure no null String is returned
-	private void postInit() {
-		if (title == null) {
-			title = "";
-		}
-		if (artist == null) {
-			artist = "";
-		}
-		if (game == null) {
-			game = "";
-		}
-		if (copyright == null) {
-			copyright = "";
-		}
-	}
+  public int duration;
+  public String title;
+  public String artist;
+  public String game;
+  public String copyright;
+
+  public PsfInfo(int duration, String title,
+                 String artist, String game, String copyright) {
+    this.duration = duration;
+    this.title = title;
+    this.artist = artist;
+    this.game = game;
+    this.copyright = copyright;
+    postInit();
+  }
+
+  // Verify and make sure no null String is returned
+  private void postInit() {
+    if (title == null) {
+      title = "";
+    }
+    if (artist == null) {
+      artist = "";
+    }
+    if (game == null) {
+      game = "";
+    }
+    if (copyright == null) {
+      copyright = "";
+    }
+  }
 }
