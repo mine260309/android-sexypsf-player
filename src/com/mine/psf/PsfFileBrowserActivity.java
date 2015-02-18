@@ -130,7 +130,8 @@ public class PsfFileBrowserActivity extends Activity
     } else {
       handleFirstTimeRun();
       Bundle extras = intent.getExtras();
-      if (extras != null) {
+      if (extras != null
+          && extras.containsKey(getString(R.string.extra_current_list_position))) {
         // If extras contains current list pos,
         // we should focus on the item after connected to the service
         focusListPosition = extras.getInt(
@@ -147,8 +148,10 @@ public class PsfFileBrowserActivity extends Activity
                               int position, long id) {
         // When clicked, start playing
         String filePath = MusicListAdapter.getFilePath(position);
-        File testDir = new File(filePath);
-        if (testDir.isDirectory()) {
+        int fileType = PsfFileNavigationUtils.GetFileType(filePath);
+
+        if (fileType == PsfFileNavigationUtils.PsfFileType.TYPE_DIR
+            || fileType == PsfFileNavigationUtils.PsfFileType.TYPE_ZIP) {
           Log.d(LOGTAG, "pick a directory: " + filePath);
           // Check the if it's go up or down level of dir
           String curDir = MusicListAdapter.getCurDir();

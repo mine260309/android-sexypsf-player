@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import android.content.Context;
 import android.util.Log;
@@ -44,6 +47,7 @@ public class PsfFileNavigationUtils {
     public static final int TYPE_DIR = 0;
     public static final int TYPE_PSF = 1;
     public static final int TYPE_PSF2 = 2;
+    public static final int TYPE_ZIP = 3;
   }
 
   public static final int BROWSE_MODE_ALL = 0;
@@ -62,6 +66,8 @@ public class PsfFileNavigationUtils {
       return PsfFileType.TYPE_PSF;
     } else if (name.endsWith(".psf2") || name.endsWith(".minipsf2")) {
       return PsfFileType.TYPE_PSF2;
+    } else if (name.endsWith(".zip")) {
+      return PsfFileType.TYPE_ZIP;
     } else {
       return PsfFileType.TYPE_DIR;
     }
@@ -93,6 +99,7 @@ public class PsfFileNavigationUtils {
       text.setText(name);
       switch (GetFileType(name)) {
         case PsfFileType.TYPE_DIR:
+        case PsfFileType.TYPE_ZIP:
           image.setImageResource(R.drawable.ic_psf_folder);
           break;
         case PsfFileType.TYPE_PSF:
@@ -138,6 +145,11 @@ public class PsfFileNavigationUtils {
   //    BROWSE_MODE_PSF_ONLY - browse only psf files, MEDIA_PATH is the root
   //    BROWSE_MODE_DIR_ONLY - browse only dir, '/' is the root
   public static PsfListAdapter browseToDir(Context context, String dir, int browseMode) {
+    // If it's zip, just browse into zip
+    if (GetFileType(dir) == PsfFileType.TYPE_ZIP) {
+      return browseToZip(context, dir);
+    }
+
     // Make Canonical path
     File curDir = new File(dir);
     PsfListAdapter listAdapter = new PsfListAdapter(context, R.layout.textview);
@@ -167,6 +179,7 @@ public class PsfFileNavigationUtils {
       listAdapter.NumOfDirectory++;
     }
 
+    // Get dirs
     if (browseMode == BROWSE_MODE_ALL
         || browseMode == BROWSE_MODE_DIR_ONLY) {
       File[] subDirs = curDir.listFiles(PsfFileNavigationUtils.DirFilter);
@@ -185,6 +198,21 @@ public class PsfFileNavigationUtils {
       }
     }
 
+    // Get zips
+    if (browseMode == BROWSE_MODE_ALL) {
+      String[] zips = curDir.list(PsfFileNavigationUtils.ZipFilter);
+      if (zips != null && zips.length > 0) {
+        listAdapter.playList = new ArrayList<String>(zips.length);
+        // Sort psf files and add into list
+        Arrays.sort(zips, String.CASE_INSENSITIVE_ORDER);
+        for (String file : zips) {
+          listAdapter.add(file);
+          listAdapter.NumOfDirectory++;
+        }
+      }
+    }
+
+    // Get Files
     if (browseMode == BROWSE_MODE_ALL
         || browseMode == BROWSE_MODE_PSF_ONLY) {
       String[] filteredFiles = curDir.list(PsfFileNavigationUtils.PsfFilter);
@@ -203,6 +231,43 @@ public class PsfFileNavigationUtils {
       }
     }
     return listAdapter;
+  }
+
+  private static PsfListAdapter browseToZip(Context context, String zipFileName) {
+    PsfListAdapter listAdapter = new PsfListAdapter(context, R.layout.textview);
+    listAdapter.NumOfDirectory = 0;
+    listAdapter.NumOfPsfFiles = 0;
+    listAdapter.curDirName = zipFileName;
+
+    // Up dir
+    listAdapter.add(GetDirNameWithPrefix(".."));
+    listAdapter.NumOfDirectory++;
+
+    // Files
+    try {
+      ZipFile zip = new ZipFile(zipFileName);
+      Enumeration files = zip.entries();
+      listAdapter.playList = new ArrayList<String>();
+      while (files.hasMoreElements()) {
+        ZipEntry file = (ZipEntry) files.nextElement();
+        if (GetFileType(file.getName()) == PsfFileType.TYPE_PSF) {
+          listAdapter.add(file.getName());
+          listAdapter.playList.add(GenerateZipPath(zipFileName, file.getName()));
+          listAdapter.NumOfPsfFiles++;
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return listAdapter;
+  }
+
+  private static String GenerateZipPath(String zip, String file) {
+    StringBuffer sb = new StringBuffer(256);
+    sb.append(zip);
+    sb.append("$");
+    sb.append(file);
+    return sb.toString();
   }
 
   private static String GetFullPath(String dir, String file) {
@@ -242,4 +307,27 @@ public class PsfFileNavigationUtils {
       return file.isDirectory();
     }
   };
+
+  public static FilenameFilter ZipFilter = new FilenameFilter() {
+    public boolean accept(File dir, String name) {
+      name = name.toLowerCase();
+      if (name.endsWith(".zip")) {
+        // Check if the zip contains psf files
+        try {
+          ZipFile zip = new ZipFile(dir + "/" + name);
+          Enumeration files = zip.entries();
+          while (files.hasMoreElements()) {
+            ZipEntry file = (ZipEntry) files.nextElement();
+            if (GetFileType(file.getName()) == PsfFileType.TYPE_PSF) {
+              return true;
+            }
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      return false;
+    }
+  };
+
 }
