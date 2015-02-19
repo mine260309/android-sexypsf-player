@@ -81,6 +81,11 @@ public class PsfFileNavigationUtils {
     return psf.endsWith(".minipsf") || psf.endsWith(".minipsf2");
   }
 
+  public static boolean isPsfLib(String psf) {
+    psf = psf.toLowerCase();
+    return psf.endsWith(".psflib") || psf.endsWith(".psf2lib");
+  }
+
   public static class PsfListAdapter extends ArrayAdapter<String> {
 
     private int NumOfDirectory;
@@ -241,6 +246,42 @@ public class PsfFileNavigationUtils {
     return listAdapter;
   }
 
+  private static PsfListAdapter browseToZip(Context context, String zipFileName) {
+    PsfListAdapter listAdapter = new PsfListAdapter(context, R.layout.textview);
+    listAdapter.NumOfDirectory = 0;
+    listAdapter.NumOfPsfFiles = 0;
+    listAdapter.curDirName = zipFileName;
+
+    // Up dir
+    listAdapter.add(GetDirNameWithPrefix(".."));
+    listAdapter.NumOfDirectory++;
+
+    // Files
+    try {
+      ZipFile zip = new ZipFile(zipFileName);
+      Enumeration files = zip.entries();
+      ArrayList<String> playList = new ArrayList<String>();
+      while (files.hasMoreElements()) {
+        ZipEntry file = (ZipEntry) files.nextElement();
+        int type = GetFileType(file.getName());
+        if (type == PsfFileType.TYPE_PSF
+            || type == PsfFileType.TYPE_PSF2) {
+          playList.add(file.getName());
+        }
+      }
+      Collections.sort(playList, String.CASE_INSENSITIVE_ORDER);
+      listAdapter.playList = new ArrayList<String>(playList.size());
+      for (String file : playList) {
+        listAdapter.add(file);
+        listAdapter.playList.add(GenerateZipPath(zipFileName, file));
+        listAdapter.NumOfPsfFiles++;
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return listAdapter;
+  }
+
   // Get the psf file path
   // If it's a regular file, return the path
   // if it's in a zip file, extract to temp dir and return the temp path
@@ -264,7 +305,7 @@ public class PsfFileNavigationUtils {
       ZipFile zip = new ZipFile(zipName);
       ZipEntry entry = zip.getEntry(psfName);
       File cacheDir = context.getCacheDir();
-      File psfFile = new File(cacheDir.getPath() + "/" + psfName);
+      File psfFile = new File(cacheDir, psfName);
       ret = psfFile.getCanonicalPath();
       extractSingleFile(zip, entry, psfFile);
 
@@ -304,43 +345,11 @@ public class PsfFileNavigationUtils {
     Enumeration files = zip.entries();
     while (files.hasMoreElements()) {
       ZipEntry file = (ZipEntry) files.nextElement();
-      // TODO: check minipsf2's libs
-      if (file.getName().endsWith(".psflib")) {
+      if (isPsfLib(file.getName())) {
         File libFile = new File(dir, file.getName());
         extractSingleFile(zip, file, libFile);
       }
     }
-  }
-
-  private static PsfListAdapter browseToZip(Context context, String zipFileName) {
-    PsfListAdapter listAdapter = new PsfListAdapter(context, R.layout.textview);
-    listAdapter.NumOfDirectory = 0;
-    listAdapter.NumOfPsfFiles = 0;
-    listAdapter.curDirName = zipFileName;
-
-    // Up dir
-    listAdapter.add(GetDirNameWithPrefix(".."));
-    listAdapter.NumOfDirectory++;
-
-    // Files
-    try {
-      ZipFile zip = new ZipFile(zipFileName);
-      Enumeration files = zip.entries();
-      listAdapter.playList = new ArrayList<String>();
-      while (files.hasMoreElements()) {
-        ZipEntry file = (ZipEntry) files.nextElement();
-        int type = GetFileType(file.getName());
-        if (type == PsfFileType.TYPE_PSF
-            || type == PsfFileType.TYPE_PSF2) {
-          listAdapter.add(file.getName());
-          listAdapter.playList.add(GenerateZipPath(zipFileName, file.getName()));
-          listAdapter.NumOfPsfFiles++;
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return listAdapter;
   }
 
   private static String GenerateZipPath(String zip, String file) {
