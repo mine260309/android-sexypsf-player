@@ -336,6 +336,7 @@ public class PsfPlaybackService extends Service
         PsfPlayer.Stop();
       }
       boolean ret;
+      path = PsfFileNavigationUtils.getPsfPath(this, path);
       ret = PsfPlayer.Open(path);
       if (ret) {
         notifyChange(META_CHANGED);

@@ -20,14 +20,17 @@ package com.mine.psf;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import android.content.Context;
 import android.util.Log;
@@ -71,6 +74,11 @@ public class PsfFileNavigationUtils {
     } else {
       return PsfFileType.TYPE_DIR;
     }
+  }
+
+  public static boolean isMiniPsf(String psf) {
+    psf = psf.toLowerCase();
+    return psf.endsWith(".minipsf") || psf.endsWith(".minipsf2");
   }
 
   public static class PsfListAdapter extends ArrayAdapter<String> {
@@ -233,6 +241,77 @@ public class PsfFileNavigationUtils {
     return listAdapter;
   }
 
+  // Get the psf file path
+  // If it's a regular file, return the path
+  // if it's in a zip file, extract to temp dir and return the temp path
+  public static String getPsfPath(Context context, String p) {
+    int zipIndex = p.indexOf("$");
+    if (zipIndex == -1) {
+      return p;
+    }
+    // TODO: extract zip file
+    String zip = p.substring(0, zipIndex);
+    String psfName = p.substring(zipIndex + 1);
+    return extractPsfZip(context, zip, psfName);
+  }
+
+  // TODO: make it as LRU cache, e.g. with 1MB size
+  // TODO: when the file exist, do not extract it again, just return the path
+  private static String extractPsfZip(Context context, String zipName, String psfName) {
+    String ret = "";
+    try {
+      // Extract psf file
+      ZipFile zip = new ZipFile(zipName);
+      ZipEntry entry = zip.getEntry(psfName);
+      File cacheDir = context.getCacheDir();
+      File psfFile = new File(cacheDir.getPath() + "/" + psfName);
+      ret = psfFile.getCanonicalPath();
+      extractSingleFile(zip, entry, psfFile);
+
+      boolean isMiniPsf = isMiniPsf(psfName);
+      if (isMiniPsf) {
+        extractPsfLibs(zip, cacheDir.getPath());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return ret;
+  }
+
+  private static void extractSingleFile(ZipFile zip, ZipEntry entry, File psfFile) {
+    try {
+      InputStream is = zip.getInputStream(entry);
+      try {
+        psfFile.getParentFile().mkdirs();
+        FileOutputStream fos = new FileOutputStream(psfFile);
+        byte[] buf = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = is.read(buf)) > 0) {
+          fos.write(buf, 0, bytesRead);
+        }
+        fos.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+        psfFile.delete();
+      }
+      is.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private static void extractPsfLibs(ZipFile zip, String dir) {
+    Enumeration files = zip.entries();
+    while (files.hasMoreElements()) {
+      ZipEntry file = (ZipEntry) files.nextElement();
+      // TODO: check minipsf2's libs
+      if (file.getName().endsWith(".psflib")) {
+        File libFile = new File(dir, file.getName());
+        extractSingleFile(zip, file, libFile);
+      }
+    }
+  }
+
   private static PsfListAdapter browseToZip(Context context, String zipFileName) {
     PsfListAdapter listAdapter = new PsfListAdapter(context, R.layout.textview);
     listAdapter.NumOfDirectory = 0;
@@ -250,7 +329,9 @@ public class PsfFileNavigationUtils {
       listAdapter.playList = new ArrayList<String>();
       while (files.hasMoreElements()) {
         ZipEntry file = (ZipEntry) files.nextElement();
-        if (GetFileType(file.getName()) == PsfFileType.TYPE_PSF) {
+        int type = GetFileType(file.getName());
+        if (type == PsfFileType.TYPE_PSF
+            || type == PsfFileType.TYPE_PSF2) {
           listAdapter.add(file.getName());
           listAdapter.playList.add(GenerateZipPath(zipFileName, file.getName()));
           listAdapter.NumOfPsfFiles++;
@@ -318,7 +399,9 @@ public class PsfFileNavigationUtils {
           Enumeration files = zip.entries();
           while (files.hasMoreElements()) {
             ZipEntry file = (ZipEntry) files.nextElement();
-            if (GetFileType(file.getName()) == PsfFileType.TYPE_PSF) {
+            int type = GetFileType(file.getName());
+            if (type == PsfFileType.TYPE_PSF
+                || type == PsfFileType.TYPE_PSF2) {
               return true;
             }
           }
