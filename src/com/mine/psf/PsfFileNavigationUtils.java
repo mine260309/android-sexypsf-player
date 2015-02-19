@@ -290,14 +290,12 @@ public class PsfFileNavigationUtils {
     if (zipIndex == -1) {
       return p;
     }
-    // TODO: extract zip file
     String zip = p.substring(0, zipIndex);
     String psfName = p.substring(zipIndex + 1);
     return extractPsfZip(context, zip, psfName);
   }
 
   // TODO: make it as LRU cache, e.g. with 1MB size
-  // TODO: when the file exist, do not extract it again, just return the path
   private static String extractPsfZip(Context context, String zipName, String psfName) {
     String ret = "";
     try {
@@ -307,7 +305,13 @@ public class PsfFileNavigationUtils {
       File cacheDir = context.getCacheDir();
       File psfFile = new File(cacheDir, psfName);
       ret = psfFile.getCanonicalPath();
-      extractSingleFile(zip, entry, psfFile);
+      if (!psfFile.exists()) {
+        Log.d(LOGTAG, "To extract " + psfFile);
+        extractSingleFile(zip, entry, psfFile);
+      }
+      else {
+        Log.d(LOGTAG, "Use cached " + psfFile);
+      }
 
       boolean isMiniPsf = isMiniPsf(psfName);
       if (isMiniPsf) {
@@ -347,7 +351,13 @@ public class PsfFileNavigationUtils {
       ZipEntry file = (ZipEntry) files.nextElement();
       if (isPsfLib(file.getName())) {
         File libFile = new File(dir, file.getName());
-        extractSingleFile(zip, file, libFile);
+        if (!libFile.exists()) {
+          Log.d(LOGTAG, "To extract " + libFile);
+          extractSingleFile(zip, file, libFile);
+        }
+        else {
+          Log.d(LOGTAG, "Use cached " + libFile);
+        }
       }
     }
   }
