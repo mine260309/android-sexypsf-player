@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
 
 import android.content.Context;
 import android.util.Log;
@@ -59,6 +58,7 @@ public class PsfFileNavigationUtils {
 
   public static final String ROOT_PATH = "/";
   private static final String DIR_PREFIX = "";
+  private static final String PSF_CACHE_FLAG = "$";
 //	private static final String DIR_PREFIX = "<dir> ";
 
   // Return the type from the name
@@ -286,13 +286,32 @@ public class PsfFileNavigationUtils {
   // If it's a regular file, return the path
   // if it's in a zip file, extract to temp dir and return the temp path
   public static String getPsfPath(Context context, String p) {
-    int zipIndex = p.indexOf("$");
+    int zipIndex = p.indexOf(PSF_CACHE_FLAG);
     if (zipIndex == -1) {
       return p;
     }
     String zip = p.substring(0, zipIndex);
     String psfName = p.substring(zipIndex + 1);
     return extractPsfZip(context, zip, psfName);
+  }
+
+  public static void cleanupPsfPath(Context context, String p) {
+    int zipIndex = p.indexOf(PSF_CACHE_FLAG);
+    if (zipIndex == -1) {
+      // Regular file, no need to clean
+      return;
+    }
+    // Delete the file in cache but keep the psflib
+    String psfName = p.substring(zipIndex + 1);
+    File cacheDir = context.getCacheDir();
+    File psfFile = new File(cacheDir, psfName);
+    if (psfFile.exists()) {
+      Log.d(LOGTAG, "To delete cached " + psfFile);
+      psfFile.delete();
+    }
+    else {
+      Log.w(LOGTAG, psfFile + " does not exist?");
+    }
   }
 
   // TODO: make it as LRU cache, e.g. with 1MB size
@@ -365,7 +384,7 @@ public class PsfFileNavigationUtils {
   private static String GenerateZipPath(String zip, String file) {
     StringBuffer sb = new StringBuffer(256);
     sb.append(zip);
-    sb.append("$");
+    sb.append(PSF_CACHE_FLAG);
     sb.append(file);
     return sb.toString();
   }

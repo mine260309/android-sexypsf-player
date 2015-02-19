@@ -102,6 +102,7 @@ public class PsfPlaybackService extends Service
   private int[] shuffleList = null;
   private int curPos;
   private boolean mServiceInUse = false;
+  private String playingFile;
 
   private SharedPreferences mPreferences;
   // Save playlist and shufflelist
@@ -148,6 +149,7 @@ public class PsfPlaybackService extends Service
     if (PsfPlayer != null) {
       cancelAudioFocus();
       PsfPlayer.Stop();
+      closeFile();
       PsfPlayer = null;
     }
 
@@ -334,8 +336,10 @@ public class PsfPlaybackService extends Service
       if (PsfPlayer.isActive()) {
         cancelAudioFocus();
         PsfPlayer.Stop();
+        closeFile();
       }
       boolean ret;
+      playingFile = path;
       path = PsfFileNavigationUtils.getPsfPath(this, path);
       ret = PsfPlayer.Open(path);
       if (ret) {
@@ -349,12 +353,17 @@ public class PsfPlaybackService extends Service
     }
   }
 
+  private void closeFile() {
+    PsfFileNavigationUtils.cleanupPsfPath(this, playingFile);
+  }
+
   public void stop() {
     synchronized (this) {
       if (PsfPlayer != null) {
         Log.d(LOGTAG, "stop");
         cancelAudioFocus();
         PsfPlayer.Stop();
+        closeFile();
         gotoIdleState();
         notifyChange(PLAYSTATE_CHANGED);
       }
