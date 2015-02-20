@@ -96,36 +96,41 @@ public class PsfFileBrowserActivity extends Activity
     Intent intent = getIntent();
     if (intent.getAction() == Intent.ACTION_VIEW) {
       String fullPath = intent.getData().getPath();
-      String fileName = intent.getData().getLastPathSegment();
-      String path = fullPath.substring(0, fullPath.lastIndexOf(fileName));
+      if (fullPath.endsWith(".zip") || fullPath.endsWith(".ZIP")) {
+        // Open a zip file, just browse into it
+        browseToDir(fullPath);
+      } else {
+        String fileName = intent.getData().getLastPathSegment();
+        String path = fullPath.substring(0, fullPath.lastIndexOf(fileName));
 
-      browseToDir(path);
-      String[] list = (String[]) playList.toArray(new String[playList.size()]);
-      int i;
-      for (i = 0; i < list.length; ++i) {
-        if (fullPath.equals(list[i])) {
-          final String[] threadList = list;
-          final int threadIndex = i;
-          focusListPosition = i;
-          final Runnable playRunnable = new Runnable() {
-            @Override
-            public void run() {
-              if (!PsfUtils.isServiceConnected()) {
-                // Wait until the service is connected
-                handler.postDelayed(this, 50);
-                return;
+        browseToDir(path);
+        String[] list = (String[]) playList.toArray(new String[playList.size()]);
+        int i;
+        for (i = 0; i < list.length; ++i) {
+          if (fullPath.equals(list[i])) {
+            final String[] threadList = list;
+            final int threadIndex = i;
+            focusListPosition = i;
+            final Runnable playRunnable = new Runnable() {
+              @Override
+              public void run() {
+                if (!PsfUtils.isServiceConnected()) {
+                  // Wait until the service is connected
+                  handler.postDelayed(this, 50);
+                  return;
+                }
+                PsfUtils.playAll(threadList, threadIndex);
+                startActivity(new Intent(getApplicationContext(),
+                    PsfPlaybackActivity.class));
               }
-              PsfUtils.playAll(threadList, threadIndex);
-              startActivity(new Intent(getApplicationContext(),
-                  PsfPlaybackActivity.class));
-            }
-          };
-          handler.postDelayed(playRunnable, 50);
-          break;
+            };
+            handler.postDelayed(playRunnable, 50);
+            break;
+          }
         }
-      }
-      if (i == list.length) {
-        Log.e(LOGTAG, "Failed to get the file: " + fileName);
+        if (i == list.length) {
+          Log.e(LOGTAG, "Failed to get the file: " + fileName);
+        }
       }
     } else {
       handleFirstTimeRun();

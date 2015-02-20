@@ -56,6 +56,8 @@
                 <data android:pathPattern=".*\\.MINIPSF" />
                 <data android:pathPattern=".*\\.PSF2" />
                 <data android:pathPattern=".*\\.MINIPSF2" />
+                <data android:pathPattern=".*\\.zip" />
+                <data android:pathPattern=".*\\.ZIP" />
                 <data android:host="*" />
             </intent-filter>
         </activity>
