@@ -336,12 +336,11 @@ public class PsfFileBrowserActivity extends Activity
 
       String[] playList = psfService.getPlaylist();
       if (playList != null && focusListPosition >= 0 && focusListPosition < playList.length) {
-        String mediaPath = playList[focusListPosition];
-        File mediaFile = new File(mediaPath);
-        mediaPath = mediaFile.getParent();
-        if (mediaPath != null) {
+        String mediaFile = playList[focusListPosition];
+        String parentDir = PsfFileNavigationUtils.getParentDir(mediaFile);
+        if (parentDir != null) {
           //Log.d(LOGTAG, "Going to focus on " + mediaFile);
-          browseToDir(mediaPath, focusListPosition);
+          browseToDir(parentDir, focusListPosition);
         } else {
           // Should never occur
           Log.e(LOGTAG, "Media path incorrect: " + mediaFile);

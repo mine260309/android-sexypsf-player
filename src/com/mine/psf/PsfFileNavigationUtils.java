@@ -58,7 +58,7 @@ public class PsfFileNavigationUtils {
 
   public static final String ROOT_PATH = "/";
   private static final String DIR_PREFIX = "";
-  private static final String PSF_CACHE_FLAG = "$";
+  private static final String PSF_ZIP_FLAG = "$";
 //	private static final String DIR_PREFIX = "<dir> ";
 
   // Return the type from the name
@@ -282,11 +282,25 @@ public class PsfFileNavigationUtils {
     return listAdapter;
   }
 
+
+  public static String getParentDir(String file) {
+    int i = file.indexOf(PSF_ZIP_FLAG);
+    if (i != -1) {
+      // In zip file
+      file = file.substring(0, i);
+      return file;
+    }
+    else {
+      File f = new File(file);
+      return f.getParent();
+    }
+  }
+
   // Get the psf file path
   // If it's a regular file, return the path
   // if it's in a zip file, extract to temp dir and return the temp path
   public static String getPsfPath(Context context, String p) {
-    int zipIndex = p.indexOf(PSF_CACHE_FLAG);
+    int zipIndex = p.indexOf(PSF_ZIP_FLAG);
     if (zipIndex == -1) {
       return p;
     }
@@ -296,7 +310,7 @@ public class PsfFileNavigationUtils {
   }
 
   public static void cleanupPsfPath(Context context, String p) {
-    int zipIndex = p.indexOf(PSF_CACHE_FLAG);
+    int zipIndex = p.indexOf(PSF_ZIP_FLAG);
     if (zipIndex == -1) {
       // Regular file, no need to clean
       return;
@@ -384,7 +398,7 @@ public class PsfFileNavigationUtils {
   private static String GenerateZipPath(String zip, String file) {
     StringBuffer sb = new StringBuffer(256);
     sb.append(zip);
-    sb.append(PSF_CACHE_FLAG);
+    sb.append(PSF_ZIP_FLAG);
     sb.append(file);
     return sb.toString();
   }
