@@ -50,6 +50,7 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.Toast;
@@ -879,24 +880,39 @@ public class PsfPlaybackService extends Service
   private void notifyPlaying() {
     Intent notificationIntent = new Intent(this, PsfPlaybackActivity.class);
     PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-    Notification notification = new Notification();
-    notification.icon = R.drawable.notification_psfplaying;
-    notification.contentIntent = contentIntent;
-    notification.flags |= Notification.FLAG_FOREGROUND_SERVICE;
+    NotificationCompat.Builder builder =
+        new NotificationCompat.Builder(this)
+            .setSmallIcon(R.drawable.notification_psfplaying)
+            .setContentTitle(getAlbumName())
+            .setContentText(getTrackName());
+    builder.setContentIntent(contentIntent);
 
-    RemoteViews contentView = new RemoteViews(getPackageName(), R.layout.notification);
-    contentView.setImageViewResource(R.id.notification_image, R.drawable.notification_psfplaying);
-    contentView.setTextViewText(R.id.notification_track, getTrackName());
-    contentView.setTextViewText(R.id.notification_album, getAlbumName());
-
-    // Set next button, seems only work after v11
+    // Next button, only work after v11
     Intent nextTrackIntent = new Intent(this, PsfPlaybackService.class);
+    nextTrackIntent.setAction(ACTION_CMD);
     nextTrackIntent.putExtra(CMDNAME, CMDNEXT);
-    PendingIntent nextTrackPendingIntent = PendingIntent.getService(this, 0, nextTrackIntent, 0);
-    contentView.setOnClickPendingIntent(R.id.notification_next_btn, nextTrackPendingIntent);
+    PendingIntent nextTrackPendingIntent =
+        PendingIntent.getService(this, 0, nextTrackIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-    notification.contentView = contentView;
-    startForeground(PLAYBACKSERVICE_STATUS, notification);
+    // Prev button
+//    Intent pauseTrackIntent = new Intent(this, PsfPlaybackService.class);
+//    pauseTrackIntent.setAction(ACTION_CMD);
+//    pauseTrackIntent.putExtra(CMDNAME, CMDPAUSE);
+//    PendingIntent pauseTrackPendingIntent =
+//        PendingIntent.getService(this, 1, pauseTrackIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+    // Prev button
+    Intent prevTrackIntent = new Intent(this, PsfPlaybackService.class);
+    prevTrackIntent.setAction(ACTION_CMD);
+    prevTrackIntent.putExtra(CMDNAME, CMDPREV);
+    PendingIntent prevTrackPendingIntent =
+        PendingIntent.getService(this, 2, prevTrackIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+
+    builder.addAction(android.R.drawable.ic_media_previous, "Prev", prevTrackPendingIntent);
+//    builder.addAction(android.R.drawable.ic_media_pause, "", pauseTrackPendingIntent);
+    builder.addAction(android.R.drawable.ic_media_next, "Next", nextTrackPendingIntent);
+
+    startForeground(PLAYBACKSERVICE_STATUS, builder.build());
   }
 
   // Stop foreground service and remove the notification
