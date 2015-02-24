@@ -24,6 +24,8 @@
 #include "PsxCommon.h"
 #include "driver.h"
 
+extern char* findFileIgnoreCase(const char* path, const char* file);
+
 // LOAD STUFF
 
 typedef struct {
@@ -79,7 +81,7 @@ static long TimeToMS(const char *str)
 	    return(acc);
 }
 
-char *GetFileWithBase(char *f, char *newfile)
+char *GetFileWithBase(const char *f, const char *newfile)
 {
   static char *ret;
   char *tp1;
@@ -324,8 +326,8 @@ static PSFINFO *LoadPSF(char *path, int level, int type) // Type==1 for just inf
 	     /* Load file name "value" from the directory specified in
 		the full path(directory + file name) "path"
 	     */
-	     tmpfn=GetFileWithBase(path,value);
-	     if(!(tmpi=LoadPSF(tmpfn,level+1,0))) 
+	     tmpfn=findFileIgnoreCase(path,value);
+	     if(!(tmpi=LoadPSF(tmpfn,level+1,0)))
 	     {
 	      //free(key);
 	      //free(value); // key and value will be freed by FreeTags(psfi->tags)
@@ -399,7 +401,7 @@ static PSFINFO *LoadPSF(char *path, int level, int type) // Type==1 for just inf
            /* Load file name "value" from the directory specified in
                 the full path(directory + file name) "path"
              */
-           tmpfn=GetFileWithBase(path,cache[cur].value);
+           tmpfn=findFileIgnoreCase(path,cache[cur].value);
            if(!(tmpi=LoadPSF(tmpfn,level+1,0)))
            {
             //free(key);

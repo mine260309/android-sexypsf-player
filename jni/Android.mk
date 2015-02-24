@@ -42,7 +42,7 @@ PSF2_SRC_FILES := $(addprefix $(PSF2_DIR)/, $(PSF2_OBJS:.o=.c))
 CPPFLAGS += -Ispu/ -I.
 
 LOCAL_MODULE    := sexypsf
-LOCAL_SRC_FILES := sexypsf_android.c sexypsf_wrapper.c $(SEXY_SRC_FILES) $(PSF2_SRC_FILES)
+LOCAL_SRC_FILES := sexypsf_android.c sexypsf_wrapper.c sexypsf_platform.c $(SEXY_SRC_FILES) $(PSF2_SRC_FILES)
 LOCAL_CFLAGS += $(SEXY_INC_DIR) $(PSF2_INC_DIR) -Wall -O3 -finline-functions -ffast-math -fomit-frame-pointer $(SEXY_FLAGS)
 
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -lz -llog

@@ -320,7 +320,7 @@ public class PsfFileNavigationUtils {
     File cacheDir = context.getCacheDir();
     File psfFile = new File(cacheDir, psfName);
     if (psfFile.exists()) {
-      Log.d(LOGTAG, "To delete cached " + psfFile);
+      //Log.d(LOGTAG, "To delete cached " + psfFile);
       psfFile.delete();
     }
     else {
@@ -339,12 +339,12 @@ public class PsfFileNavigationUtils {
       File psfFile = new File(cacheDir, psfName);
       ret = psfFile.getCanonicalPath();
       if (!psfFile.exists()) {
-        Log.d(LOGTAG, "To extract " + psfFile);
+        //Log.d(LOGTAG, "To extract " + psfFile);
         extractSingleFile(zip, entry, psfFile);
       }
-      else {
-        Log.d(LOGTAG, "Use cached " + psfFile);
-      }
+//      else {
+//        Log.d(LOGTAG, "Use cached " + psfFile);
+//      }
 
       boolean isMiniPsf = isMiniPsf(psfName);
       if (isMiniPsf) {
@@ -385,12 +385,12 @@ public class PsfFileNavigationUtils {
       if (isPsfLib(file.getName())) {
         File libFile = new File(dir, file.getName());
         if (!libFile.exists()) {
-          Log.d(LOGTAG, "To extract " + libFile);
+//          Log.d(LOGTAG, "To extract " + libFile);
           extractSingleFile(zip, file, libFile);
         }
-        else {
-          Log.d(LOGTAG, "Use cached " + libFile);
-        }
+//        else {
+//          Log.d(LOGTAG, "Use cached " + libFile);
+//        }
       }
     }
   }
