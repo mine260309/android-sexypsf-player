@@ -68,5 +68,6 @@
     <!-- Toast strings -->
     <string name="psf_open_fail">Psf open failed, file corrupted or psflib is missing</string>
     <string name="playlist_empty_error">Playlist Empty!\nPlease select a direcotry contains psf files.</string>
+    <string name="permission_storage_reason">This app requires storage read permission to play the psf files.</string>
 </resources>
 
