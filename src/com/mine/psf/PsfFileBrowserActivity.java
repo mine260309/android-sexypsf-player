@@ -18,13 +18,7 @@
 
 package com.mine.psf;
 
-import java.io.File;
-import java.util.ArrayList;
-
-import com.mine.psf.PsfFileNavigationUtils.PsfListAdapter;
-import com.mine.psf.PsfUtils.ServiceToken;
-import com.mine.psfplayer.R;
-
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -43,6 +37,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.method.LinkMovementMethod;
 import android.text.util.Linkify;
 import android.util.Log;
@@ -51,14 +47,22 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Toast;
 
+import com.mine.psf.PsfFileNavigationUtils.PsfListAdapter;
+import com.mine.psf.PsfUtils.ServiceToken;
+import com.mine.psfplayer.R;
+
+import java.io.File;
+import java.util.ArrayList;
+
 public class PsfFileBrowserActivity extends Activity
-    implements ServiceConnection,
-    SharedPreferences.OnSharedPreferenceChangeListener {
+        implements ServiceConnection,
+        SharedPreferences.OnSharedPreferenceChangeListener,
+        ActivityCompat.OnRequestPermissionsResultCallback {
   private static final String LOGTAG = "PsfFileBrowserActivity";
 
   private static final int ID_EXIT = 1;
@@ -85,6 +89,8 @@ public class PsfFileBrowserActivity extends Activity
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     c = this;
+
+    checkStoragePermission();
     mToken = PsfUtils.bindToService(this, this);
 
     mStepsBack = 0;
@@ -121,7 +127,7 @@ public class PsfFileBrowserActivity extends Activity
                 }
                 PsfUtils.playAll(threadList, threadIndex);
                 startActivity(new Intent(getApplicationContext(),
-                    PsfPlaybackActivity.class));
+                        PsfPlaybackActivity.class));
               }
             };
             handler.postDelayed(playRunnable, 50);
@@ -132,19 +138,18 @@ public class PsfFileBrowserActivity extends Activity
           Log.e(LOGTAG, "Failed to get the file: " + fileName);
         }
       }
-    } else {
+    }
+    else {
       handleFirstTimeRun();
       Bundle extras = intent.getExtras();
       if (extras != null
-          && extras.containsKey(getString(R.string.extra_current_list_position))) {
+              && extras.containsKey(getString(R.string.extra_current_list_position))) {
         // If extras contains current list pos,
         // we should focus on the item after connected to the service
         focusListPosition = extras.getInt(
-            getString(R.string.extra_current_list_position));
+                getString(R.string.extra_current_list_position));
       } else {
-        String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
-        Log.d(LOGTAG, "Media Path is: " + mediaPath);
-        browseToDir(mediaPath);
+        showFiles();
       }
     }
 
@@ -156,7 +161,7 @@ public class PsfFileBrowserActivity extends Activity
         int fileType = PsfFileNavigationUtils.GetFileType(filePath);
 
         if (fileType == PsfFileNavigationUtils.PsfFileType.TYPE_DIR
-            || fileType == PsfFileNavigationUtils.PsfFileType.TYPE_ZIP) {
+                || fileType == PsfFileNavigationUtils.PsfFileType.TYPE_ZIP) {
           Log.d(LOGTAG, "pick a directory: " + filePath);
           // Check the if it's go up or down level of dir
           String curDir = MusicListAdapter.getCurDir();
@@ -183,7 +188,7 @@ public class PsfFileBrowserActivity extends Activity
 
     // Register listener on psf root dir change
     SharedPreferences prefs =
-        PreferenceManager.getDefaultSharedPreferences(this);
+            PreferenceManager.getDefaultSharedPreferences(this);
     prefs.registerOnSharedPreferenceChangeListener(this);
   }
 
@@ -283,14 +288,14 @@ public class PsfFileBrowserActivity extends Activity
     msgView.setMovementMethod(LinkMovementMethod.getInstance());
 
     return new AlertDialog.Builder(this).setView(msgView)
-        .setCancelable(true)
-        .setPositiveButton(android.R.string.ok,
-            new DialogInterface.OnClickListener() {
-              public void onClick(DialogInterface dialog,
-                                  int whichButton) {
-                /* User clicked OK so do some stuff */
-              }
-            }).create();
+            .setCancelable(true)
+            .setPositiveButton(android.R.string.ok,
+                    new DialogInterface.OnClickListener() {
+                      public void onClick(DialogInterface dialog,
+                                          int whichButton) {
+                        /* User clicked OK so do some stuff */
+                      }
+                    }).create();
   }
 
   @Override
@@ -318,8 +323,13 @@ public class PsfFileBrowserActivity extends Activity
 
   private void showListEmptyError() {
     // Show a toast indicating play list empty
-    Toast.makeText(c, R.string.playlist_empty_error,
-        Toast.LENGTH_LONG).show();
+    Toast.makeText(this, R.string.playlist_empty_error,
+            Toast.LENGTH_LONG).show();
+  }
+
+  private void showStoragePermissionReason() {
+    Toast.makeText(this, R.string.permission_storage_reason,
+            Toast.LENGTH_SHORT).show();
   }
 
   @Override
@@ -332,7 +342,7 @@ public class PsfFileBrowserActivity extends Activity
 
     if (focusListPosition != -1) {
       PsfPlaybackService psfService =
-          ((PsfPlaybackService.ServiceBinder) service).getService();
+              ((PsfPlaybackService.ServiceBinder) service).getService();
 
       String[] playList = psfService.getPlaylist();
       if (playList != null && focusListPosition >= 0 && focusListPosition < playList.length) {
@@ -394,7 +404,7 @@ public class PsfFileBrowserActivity extends Activity
 
   private void browseToDir(String dir) {
     MusicListAdapter = PsfFileNavigationUtils.browseToDir(
-        c, dir, PsfFileNavigationUtils.BROWSE_MODE_ALL);
+            c, dir, PsfFileNavigationUtils.BROWSE_MODE_ALL);
     MusicListView.setAdapter(MusicListAdapter);
     playList = MusicListAdapter.getPlayList();
     CurDirView.setText(MusicListAdapter.getCurDir());
@@ -420,26 +430,68 @@ public class PsfFileBrowserActivity extends Activity
     }
   }
 
+  private final int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE = 1;
+
+  private void checkStoragePermission() {
+    if (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED) {
+      if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+              Manifest.permission.READ_EXTERNAL_STORAGE)) {
+        showStoragePermissionReason();
+      }
+
+      // No explanation needed, we can request the permission.
+      ActivityCompat.requestPermissions(this,
+              new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+              MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE);
+    }
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode,
+                                         String permissions[], int[] grantResults) {
+    switch (requestCode) {
+      case MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE: {
+        // If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+          Log.i(LOGTAG, "Granted storage permission");
+          showFiles();
+        } else {
+          showStoragePermissionReason();
+        }
+        return;
+      }
+    }
+  }
+
+  private void showFiles() {
+    String mediaPath = PsfDirectoryChoosePreference.getPsfRootDir(c);
+    Log.d(LOGTAG, "Media Path is: " + mediaPath);
+    browseToDir(mediaPath);
+  }
+
   private void handleFirstTimeRun() {
     // Check if the psf root dir is set
     // If not, probably it's the first time run,
     // so ask user to set the psf root dir
     SharedPreferences settings = PreferenceManager
-        .getDefaultSharedPreferences(c);
+            .getDefaultSharedPreferences(c);
     if (!settings.contains(getString(R.string.key_psf_root_dir))) {
       Log.d(LOGTAG, "First time run");
       new AlertDialog.Builder(c).setMessage(R.string.first_time_run_dialog_msg)
-          .setPositiveButton(android.R.string.ok,
-              new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog,
-                                    int whichButton) {
-                  // Direct to the psf root dir setting
-                  Intent intent = new Intent(c, PsfSettingsActivity.class);
-                  intent.putExtra(
-                      getString(R.string.extra_direct_show_dir_dialog), true);
-                  startActivity(intent);
-                }
-              }).create().show();
+              .setPositiveButton(android.R.string.ok,
+                      new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog,
+                                            int whichButton) {
+                          // Direct to the psf root dir setting
+                          Intent intent = new Intent(c, PsfSettingsActivity.class);
+                          intent.putExtra(
+                                  getString(R.string.extra_direct_show_dir_dialog), true);
+                          startActivity(intent);
+                        }
+                      }).create().show();
     }
   }
 }
