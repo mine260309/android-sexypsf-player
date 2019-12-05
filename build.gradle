@@ -1,21 +1,28 @@
 buildscript {
     repositories {
-        mavenCentral()
+        google()
+        jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.1.3'
+        classpath 'com.android.tools.build:gradle:3.5.2'
+    }
+}
+allprojects {
+    repositories {
+        google() // and here
+        jcenter()
     }
 }
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile fileTree(dir: 'libs', include: '*.jar')
-    compile 'com.android.support:support-v4:24.2.0'
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
 }
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.1"
+    compileSdkVersion 28
+    buildToolsVersion '29.0.2'
 
     sourceSets {
         main {
@@ -30,7 +37,7 @@ android {
         }
 
         // Move the tests to tests/java, tests/res, etc...
-        instrumentTest.setRoot('tests')
+        //instrumentTest.setRoot('tests')
 
         // Move the build types to build-types/<type>
         // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
@@ -40,5 +47,8 @@ android {
         // by a similar customization.
         debug.setRoot('build-types/debug')
         release.setRoot('build-types/release')
+    }
+    defaultConfig {
+        minSdkVersion 14
     }
 }

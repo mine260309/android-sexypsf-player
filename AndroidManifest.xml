@@ -22,15 +22,15 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="com.mine.psfplayer"
-        android:versionCode="13"
-        android:versionName="1.2.6" >
+        android:versionCode="14"
+        android:versionName="1.2.7" >
 
-    <uses-sdk android:minSdkVersion="9"
-            android:targetSdkVersion="24" />
+    <uses-sdk android:targetSdkVersion="28" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!--  uses-permission android:name="android.permission.INTERNET" / -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application android:icon="@drawable/minepsfplayer"
         android:label="@string/minepsfplayer_app"

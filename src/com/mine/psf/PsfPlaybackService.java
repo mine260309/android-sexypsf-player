@@ -31,6 +31,8 @@ import com.mine.psfplayer.R;
 
 import android.annotation.TargetApi;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -50,9 +52,8 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.preference.PreferenceManager;
-import android.support.v4.app.NotificationCompat;
+import androidx.core.app.NotificationCompat;
 import android.util.Log;
-import android.widget.RemoteViews;
 import android.widget.Toast;
 
 /**
@@ -878,10 +879,20 @@ public class PsfPlaybackService extends Service
 
   // Start foreground service and show the notification
   private void notifyPlaying() {
+    String NOTIFICATION_CHANNEL_ID = "com.mine.psf";
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      String channelName = "Playback service";
+      NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
+      chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+      NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+      assert manager != null;
+      manager.createNotificationChannel(chan);
+    }
+
     Intent notificationIntent = new Intent(this, PsfPlaybackActivity.class);
     PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
     NotificationCompat.Builder builder =
-        new NotificationCompat.Builder(this)
+        new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_psfplaying)
             .setContentTitle(getAlbumName())
             .setContentText(getTrackName());
